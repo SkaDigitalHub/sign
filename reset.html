@@ -40,9 +40,11 @@
   let currentEmail = '';
 
   async function api(action, data) {
+    const payload = { action, ...data };
+    console.log('Sending to API:', payload); // ← ADD THIS
     const resp = await fetch(API_URL, {
       method: 'POST',
-      body: JSON.stringify({ action, ...data }),
+      body: JSON.stringify(payload),
       headers: { 'Content-Type': 'text/plain' }
     });
     return resp.json();
