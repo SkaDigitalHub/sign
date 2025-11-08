@@ -39,16 +39,25 @@
   const API_URL = 'https://script.google.com/macros/s/AKfycbxikiNIi81cPsekdg_z8yClvwGQbp92z-AMQrNixtw-yK1KN6ZUSyVAc_i-IUoMf4MQ2Q/exec';
   let currentEmail = '';
 
-  async function api(action, data) {
-    const payload = { action, ...data };
-    console.log('Sending to API:', payload); // ← ADD THIS
+  async function api(action, data = {}) {
+  const payload = { action, ...data };
+  console.log('Sending:', payload); // ← DEBUG
+
+  try {
     const resp = await fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify(payload),
-      headers: { 'Content-Type': 'text/plain' }
+      headers: { 'Content-Type': 'text/plain' },
+      mode: 'cors'
     });
-    return resp.json();
+    const result = await resp.json();
+    console.log('Response:', result);
+    return result;
+  } catch (err) {
+    console.error('Fetch error:', err);
+    return { error: 'Network error' };
   }
+}
 
   document.getElementById('step1').onsubmit = async e => {
     e.preventDefault();
