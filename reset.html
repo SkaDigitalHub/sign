@@ -40,53 +40,55 @@
   let currentEmail = '';
 
   async function api(action, data = {}) {
-  const payload = { action, ...data };
-  console.log('Sending:', payload); // ← DEBUG
-
-  try {
-    const resp = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-      headers: { 'Content-Type': 'text/plain' },
-      mode: 'cors'
-    });
-    const result = await resp.json();
-    console.log('Response:', result);
-    return result;
-  } catch (err) {
-    console.error('Fetch error:', err);
-    return { error: 'Network error' };
+    const payload = { action, ...data };
+    console.log('Sending:', payload);
+    try {
+      const resp = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'text/plain' },
+        mode: 'cors'
+      });
+      return await resp.json();
+    } catch (err) {
+      return { error: 'Network error' };
+    }
   }
-}
 
+  // Step 1: Request OTP
   document.getElementById('step1').onsubmit = async e => {
     e.preventDefault();
     currentEmail = document.getElementById('email').value.trim();
-    try {
-      const res = await api('requestOtp', { email: currentEmail });
-      if (res.error) throw res.error;
-      Swal.fire('OTP Sent', res.msg, 'info');
-      document.getElementById('step1').classList.add('d-none');
-      document.getElementById('step2').classList.remove('d-none');
-    } catch (err) {
-      Swal.fire('Error', err, 'error');
-    }
+    if (!currentEmail) return Swal.fire('Error', 'Enter email', 'error');
+
+    const res = await api('requestOtp', { email: currentEmail });
+    if (res.error) return Swal.fire('Error', res.error, 'error');
+
+    Swal.fire('OTP Sent', res.msg, 'success');
+    document.getElementById('step1').classList.add('d-none');
+    document.getElementById('step2').classList.remove('d-none');
   };
 
+  // Step 2: Verify OTP + Reset
   document.getElementById('step2').onsubmit = async e => {
     e.preventDefault();
-    const payload = {
-      email: currentEmail,
-      otp: document.getElementById('otp').value.trim(),
-      newPassword: document.getElementById('newPwd').value
-    };
-    try {
-      const res = await api('verifyOtp', payload);
-      if (res.error) throw res.error;
-      Swal.fire('Success', res.msg, 'success').then(() => location.href = 'login.html');
-    } catch (err) {
-      Swal.fire('Error', err, 'error');
+    const otp = document.getElementById('otp').value.trim();
+    const newPassword = document.getElementById('newPwd').value;
+
+    if (!otp || !newPassword || !currentEmail) {
+      return Swal.fire('Error', 'All fields required', 'error');
     }
+
+    const res = await api('verifyOtp', {
+      email: currentEmail,     // ← SEND EMAIL
+      otp: otp,               // ← SEND OTP
+      newPassword: newPassword // ← SEND NEW PASSWORD
+    });
+
+    if (res.error) return Swal.fire('Error', res.error, 'error');
+    Swal.fire('Success', res.msg, 'success').then(() => {
+      location.href = 'login.html';
+    });
   };
 </script>
 </body>
