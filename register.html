@@ -15,12 +15,12 @@
       <div class="card shadow">
         <div class="card-header bg-primary text-white text-center"><h4>Register</h4></div>
         <div class="card-body">
-          <form id="registerForm">
-            <div class="mb-3"><input type="text" class="form-control" placeholder="Full Name" id="name" required></div>
-            <div class="mb-3"><input type="email" class="form-control" placeholder="Email" id="email" required></div>
-            <div class="mb-3"><input type="password" class="form-control" placeholder="Password" id="password" required></div>
-            <button type="submit" class="btn btn-primary w-100">Create Account</button>
-          </form>
+         <form onsubmit="handleRegister(event)">
+  <input type="text" id="name" placeholder="Full Name" required>
+  <input type="email" id="email" placeholder="Email" required>
+  <input type="password" id="password" placeholder="Password" required>
+  <button type="submit">Sign Up</button>
+</form>
           <hr>
           <a href="login.html" class="d-block text-center">Already have an account? Login</a>
         </div>
@@ -30,32 +30,31 @@
 </div>
 
 <script>
-  const API_URL = 'https://script.google.com/macros/s/AKfycbwuJUdazFDcaJvx4x_ujltGGKnRxG6OEXBtbQGtXg0PHHHjM4Q93iT_9FPnE15DAM0q/exec';
+ const API_URL = 'YOUR_APPS_SCRIPT_URL';
 
-  async function api(action, data) {
-    const resp = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action, ...data }),
-      headers: { 'Content-Type': 'text/plain' }
-    });
-    return resp.json();
-  }
+async function apiRequest(func, data) {
+  const formData = new FormData();
+  formData.append('function', func);
+  formData.append('data', JSON.stringify(data));
 
-  document.getElementById('registerForm').onsubmit = async e => {
-    e.preventDefault();
-    const payload = {
-      name: document.getElementById('name').value.trim(),
-      email: document.getElementById('email').value.trim(),
-      password: document.getElementById('password').value
-    };
-    try {
-      const res = await api('register', payload);
-      if (res.error) throw res.error;
-      Swal.fire('Success', res.msg, 'success').then(() => location.href = 'login.html');
-    } catch (err) {
-      Swal.fire('Error', err, 'error');
-    }
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    body: formData
+  });
+  return await response.json();
+}
+
+// Example: Register function
+async function handleRegister(e) {
+  e.preventDefault();
+  const data = {
+    email: document.getElementById('email').value,
+    password: document.getElementById('password').value,
+    name: document.getElementById('name').value
   };
+  const res = await apiRequest('register', data);
+  if(res.success) alert("Registered!"); else alert(res.error);
+}
 </script>
 </body>
 </html>
