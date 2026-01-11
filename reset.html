@@ -9,87 +9,46 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="bg-light">
-<div class="container py-5">
-  <div class="row justify-content-center">
-    <div class="col-md-6">
-      <div class="card shadow">
-        <div class="card-header bg-warning text-dark text-center"><h4>Password Reset</h4></div>
-        <div class="card-body">
+<div class="card">
+  <h2>Reset Password</h2>
+  
+  <div id="step1">
+    <input type="email" id="resetEmail" placeholder="Enter your email">
+    <button onclick="sendOtp()">Send Reset Code</button>
+  </div>
 
-          <!-- Step 1: Request OTP -->
-          <form id="step1">
-            <div class="mb-3"><input type="email" class="form-control" placeholder="Your email" id="email" required></div>
-            <button type="submit" class="btn btn-warning w-100">Send OTP</button>
-          </form>
-
-          <!-- Step 2: Enter OTP + New Password -->
-          <form id="step2" class="d-none mt-4">
-            <div class="mb-3"><input type="text" class="form-control" placeholder="OTP (6 digits)" id="otp" maxlength="6" required></div>
-            <div class="mb-3"><input type="password" class="form-control" placeholder="New password" id="newPwd" required></div>
-            <button type="submit" class="btn btn-success w-100">Reset Password</button>
-          </form>
-
-        </div>
-      </div>
-    </div>
+  <div id="step2" class="hidden">
+    <input type="text" id="otp" placeholder="6-digit Code">
+    <input type="password" id="newPass" placeholder="New Password">
+    <button onclick="performReset()">Update Password</button>
   </div>
 </div>
 
 <script>
-  const API_URL = 'https://script.google.com/macros/s/AKfycbwuJUdazFDcaJvx4x_ujltGGKnRxG6OEXBtbQGtXg0PHHHjM4Q93iT_9FPnE15DAM0q/exec';
-  let currentEmail = '';
-
-  async function api(action, data = {}) {
-    const payload = { action, ...data };
-    console.log('Sending:', payload);
-    try {
-      const resp = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        headers: { 'Content-Type': 'text/plain' },
-        mode: 'cors'
-      });
-      return await resp.json();
-    } catch (err) {
-      return { error: 'Network error' };
+  async function sendOtp() {
+    const email = document.getElementById('resetEmail').value;
+    const res = await apiRequest('requestOtp', { email: email });
+    if(res.success) {
+      alert("Code sent to your email!");
+      document.getElementById('step1').classList.add('hidden');
+      document.getElementById('step2').classList.remove('hidden');
     }
   }
 
-  // Step 1: Request OTP
-  document.getElementById('step1').onsubmit = async e => {
-    e.preventDefault();
-    currentEmail = document.getElementById('email').value.trim();
-    if (!currentEmail) return Swal.fire('Error', 'Enter email', 'error');
-
-    const res = await api('requestOtp', { email: currentEmail });
-    if (res.error) return Swal.fire('Error', res.error, 'error');
-
-    Swal.fire('OTP Sent', res.msg, 'success');
-    document.getElementById('step1').classList.add('d-none');
-    document.getElementById('step2').classList.remove('d-none');
-  };
-
-  // Step 2: Verify OTP + Reset
-  document.getElementById('step2').onsubmit = async e => {
-    e.preventDefault();
-    const otp = document.getElementById('otp').value.trim();
-    const newPassword = document.getElementById('newPwd').value;
-
-    if (!otp || !newPassword || !currentEmail) {
-      return Swal.fire('Error', 'All fields required', 'error');
+  async function performReset() {
+    const data = {
+      email: document.getElementById('resetEmail').value,
+      otp: document.getElementById('otp').value,
+      password: document.getElementById('newPass').value
+    };
+    const res = await apiRequest('resetPassword', data);
+    if(res.success) {
+      alert("Success! Please login with your new password.");
+      window.location.href = 'login.html';
+    } else {
+      alert(res.error);
     }
-
-    const res = await api('verifyOtp', {
-      email: currentEmail,     // ← SEND EMAIL
-      otp: otp,               // ← SEND OTP
-      newPassword: newPassword // ← SEND NEW PASSWORD
-    });
-
-    if (res.error) return Swal.fire('Error', res.error, 'error');
-    Swal.fire('Success', res.msg, 'success').then(() => {
-      location.href = 'login.html';
-    });
-  };
+  }
 </script>
 </body>
 </html>
