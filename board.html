@@ -1,153 +1,340 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Dashboard</title>
-    <style>
-        :root {
-            --primary: #4285f4;
-            --danger: #d93025;
-            --bg: #f8f9fa;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg);
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-        .container {
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
-        }
-        .user-badge {
-            background: #e8f0fe;
-            color: var(--primary);
-            padding: 10px;
-            border-radius: 50px;
-            display: inline-block;
-            margin-bottom: 20px;
-            font-weight: bold;
-        }
-        h1 { color: #3c4043; margin-bottom: 10px; }
-        p { color: #5f6368; line-height: 1.5; }
-        .btn-logout {
-            background-color: var(--danger);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-top: 20px;
-            transition: opacity 0.2s;
-        }
-        .btn-logout:hover { opacity: 0.9; }
-        #loading-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .hidden { display: none !important; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --sidebar-width: 260px;
+            --primary: #4285f4;
+            --secondary: #34a853;
+            --danger: #ea4335;
+            --text-main: #202124;
+            --text-sub: #5f6368;
+            --bg-body: #f1f3f4;
+        }
+
+        body {
+            font-family: 'Google Sans', Roboto, Arial, sans-serif;
+            background-color: var(--bg-body);
+            margin: 0;
+            display: flex;
+            color: var(--text-main);
+        }
+
+        /* --- SIDEBAR --- */
+        nav {
+            width: var(--sidebar-width);
+            background: #fff;
+            height: 100vh;
+            border-right: 1px solid #dadce0;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+        }
+
+        .nav-logo {
+            padding: 24px;
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--primary);
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .nav-links {
+            flex: 1;
+            padding: 16px 0;
+        }
+
+        .nav-item {
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            color: var(--text-sub);
+            text-decoration: none;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+
+        .nav-item i { margin-right: 15px; width: 20px; }
+
+        .nav-item:hover, .nav-item.active {
+            background: #e8f0fe;
+            color: var(--primary);
+            border-radius: 0 50px 50px 0;
+            margin-right: 10px;
+        }
+
+        .logout-btn { color: var(--danger); margin-top: auto; border-top: 1px solid #f1f3f4; }
+
+        /* --- MAIN CONTENT --- */
+        main {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            min-height: 100vh;
+        }
+
+        header {
+            background: #fff;
+            padding: 12px 32px;
+            display: flex;
+            justify-content: flex-end; /* Pushes name to top-right */
+            align-items: center;
+            border-bottom: 1px solid #dadce0;
+            position: sticky;
+            top: 0;
+        }
+
+        .user-profile-top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f8f9fa;
+            padding: 6px 16px;
+            border-radius: 50px;
+            border: 1px solid #dadce0;
+        }
+
+        .user-profile-top img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+
+        /* --- DASHBOARD GRID --- */
+        .content-body { padding: 32px; }
+
+        .welcome-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: #fff;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #dadce0;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .blue { background: #e8f0fe; color: var(--primary); }
+        .green { background: #e6f4ea; color: var(--secondary); }
+
+        /* --- TABLES --- */
+        .recent-activity {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #dadce0;
+            padding: 24px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+
+        th { text-align: left; color: var(--text-sub); font-weight: 500; padding: 12px; border-bottom: 2px solid #f1f3f4; }
+        td { padding: 16px 12px; border-bottom: 1px solid #f1f3f4; font-size: 14px; }
+
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; display: flex; justify-content: center; align-items: center; z-index: 2000;
+        }
+        .hidden { display: none !important; }
+    </style>
 </head>
 <body>
 
-    <div id="loading-overlay">
-        <h3>Verifying Session...</h3>
-    </div>
+    <div id="loading-overlay">
+        <h3><i class="fas fa-spinner fa-spin"></i> Loading Dashboard...</h3>
+    </div>
 
-    <div id="dashboard-content" class="container hidden">
-        <div class="user-badge" id="userNameDisplay">User</div>
-        <h1>Welcome Back!</h1>
-        <p>This is a secure area. Your session token is active and validated by Google Apps Script.</p>
-        
-        <div id="userData" style="text-align: left; background: #eee; padding: 10px; border-radius: 5px; margin: 15px 0; font-family: monospace;">
-            Email: <span id="userEmailDisplay">...</span>
-        </div>
+    <nav id="sidebar" class="hidden">
+        <div class="nav-logo">AppPortal</div>
+        <div class="nav-links">
+            <a href="#" class="nav-item active"><i class="fas fa-home"></i> Dashboard</a>
+            <a href="#" class="nav-item"  onclick="showSection(sectionId)"><i class="fas fa-user-circle"></i> Profile Settings</a>
+            <a href="#" class="nav-item"><i class="fas fa-chart-line"></i> Analytics</a>
+            <a href="#" class="nav-item logout-btn" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Log Out</a>
+        </div>
+    </nav>
 
-        <button class="btn-logout" onclick="handleLogout()">Sign Out</button>
-    </div>
+    <div id="profile-section" class="hidden">
+    <div class="welcome-section">
+        <h1>Profile Settings</h1>
+        <p>Manage your account information and security.</p>
+    </div>
 
-    <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyLs9Sa_daLUVR1Hv2Y17FnfElE3BGlFDmFJTP2t4HTYOBWb430oROxCS062OCXpdpz/exec';
+    <div class="stats-grid">
+        <div class="recent-activity">
+            <h3>Update Name</h3>
+            <input type="text" id="editName" style="width:90%; padding:10px; margin-bottom:10px; border:1px solid #ddd;">
+            <button onclick="saveName()" class="nav-item active" style="border:none; width:100%; justify-content:center;">Save Name</button>
+        </div>
 
-        /**
-         * 1. SESSION CHECK (Runs on Page Load)
-         */
-        async function validatePageSession() {
-            const token = localStorage.getItem('gas_session_token');
-            const cachedName = localStorage.getItem('gas_user_name');
+        <div class="recent-activity">
+            <h3>Change Password</h3>
+            <input type="password" id="oldPass" placeholder="Current Password" style="width:90%; padding:10px; margin-bottom:10px; border:1px solid #ddd;">
+            <input type="password" id="newPass" placeholder="New Password" style="width:90%; padding:10px; margin-bottom:10px; border:1px solid #ddd;">
+            <button onclick="savePassword()" class="nav-item logout-btn" style="border:none; width:100%; justify-content:center; background:#eee;">Update Password</button>
+        </div>
+    </div>
+</div>
 
-            // If no token exists locally, kick to login immediately
-            if (!token) {
-                window.location.href = 'login.html'; 
-                return;
-            }
+    <main id="main-content" class="hidden">
+        <header>
+            <div class="user-profile-top">
+                <span id="userNameTop">Guest</span>
+                <img src="https://ui-avatars.com/api/?name=User&background=4285f4&color=fff" id="userAvatar">
+            </div>
+        </header>
 
-            try {
-                const formData = new URLSearchParams();
-                formData.append('function', 'validateSession');
-                formData.append('data', JSON.stringify({ token: token }));
+        <div class="content-body">
+            <div class="welcome-section">
+                <h1>Welcome, <span id="welcomeName">User</span>!</h1>
+                <p>Here is what's happening with your account today.</p>
+            </div>
 
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: formData
-                });
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue"><i class="fas fa-clock"></i></div>
+                    <div>
+                        <div style="color:var(--text-sub); font-size: 14px;">Last Login</div>
+                        <div style="font-size: 18px; font-weight: bold;" id="lastLoginTime">Today, 12:45 PM</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green"><i class="fas fa-shield-alt"></i></div>
+                    <div>
+                        <div style="color:var(--text-sub); font-size: 14px;">Security Status</div>
+                        <div style="font-size: 18px; font-weight: bold; color: var(--secondary);">Active</div>
+                    </div>
+                </div>
+            </div>
 
-                const result = await response.json();
+            <div class="recent-activity">
+                <h3><i class="fas fa-history"></i> Recent Activity Log</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activityLog">
+                        <tr>
+                            <td id="tableUser">User Name</td>
+                            <td>Session Validated</td>
+                            <td id="currentTime">Just now</td>
+                            <td><span style="color:var(--secondary)">● Success</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
 
-                if (result.success) {
-                    // Session is valid! Show the dashboard
-                    document.getElementById('loading-overlay').classList.add('hidden');
-                    document.getElementById('dashboard-content').classList.remove('hidden');
-                    document.getElementById('userNameDisplay').innerText = cachedName || 'User';
-                    document.getElementById('userEmailDisplay').innerText = result.email;
-                } else {
-                    // Token expired or fake
-                    handleLogout();
-                }
-            } catch (error) {
-                console.error("Auth Error:", error);
-                alert("Connection lost. Please try again.");
-            }
-        }
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbwrRDThkEBx-H6BcU7h85991yNr9uZfyHjP1JOFsFxYE-9INk1jDbe-7qG_KPgiWw1L/exec';
 
-        /**
-         * 2. LOGOUT FUNCTION
-         */
-        async function handleLogout() {
-            const token = localStorage.getItem('gas_session_token');
-            
-            if (token) {
-                const formData = new URLSearchParams();
-                formData.append('function', 'logout');
-                formData.append('data', JSON.stringify({ token: token }));
-                
-                // Tell the server to delete the token, but don't wait for response
-                fetch(API_URL, { method: 'POST', body: formData });
-            }
+        async function validatePageSession() {
+            const token = localStorage.getItem('gas_session_token');
+            const cachedName = localStorage.getItem('gas_user_name');
 
-            // Clear local data and redirect
-            localStorage.removeItem('gas_session_token');
-            localStorage.removeItem('gas_user_name');
-            window.location.href = 'login.html';
-        }
+            if (!token) { window.location.href = 'login.html'; return; }
 
-        // Initialize session check
-        validatePageSession();
-    </script>
+            try {
+                const formData = new URLSearchParams();
+                formData.append('function', 'validateSession');
+                formData.append('data', JSON.stringify({ token: token }));
+
+                const response = await fetch(API_URL, { method: 'POST', body: formData });
+                const result = await response.json();
+
+                if (result.success) {
+                    // Update UI
+                    document.getElementById('loading-overlay').classList.add('hidden');
+                    document.getElementById('sidebar').classList.remove('hidden');
+                    document.getElementById('main-content').classList.remove('hidden');
+                    
+                    const name = cachedName || 'User';
+                    document.getElementById('userNameTop').innerText = name;
+                    document.getElementById('welcomeName').innerText = name;
+                    document.getElementById('tableUser').innerText = name;
+                    document.getElementById('currentTime').innerText = new Date().toLocaleTimeString();
+                    document.getElementById('userAvatar').src = `https://ui-avatars.com/api/?name=${name}&background=4285f4&color=fff`;
+                } else {
+                    handleLogout();
+                }
+            } catch (error) {
+                alert("Session verification failed.");
+                handleLogout();
+            }
+        }
+
+        async function handleLogout() {
+            const token = localStorage.getItem('gas_session_token');
+            if (token) {
+                const formData = new URLSearchParams();
+                formData.append('function', 'logout');
+                formData.append('data', JSON.stringify({ token: token }));
+                fetch(API_URL, { method: 'POST', body: formData });
+            }
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+
+        function showSection(sectionId) {
+    document.getElementById('welcome-section-main').classList.add('hidden'); // Group your dashboard cards in this div
+    document.getElementById('profile-section').classList.add('hidden');
+    
+    document.getElementById(sectionId).classList.remove('hidden');
+    
+    // Toggle active class on sidebar
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+}
+
+async function saveName() {
+    const newName = document.getElementById('editName').value;
+    const res = await callApi('updateProfile', { 
+        token: localStorage.getItem('gas_session_token'), 
+        newName: newName 
+    });
+    
+    if(res.success) {
+        alert("Name updated!");
+        localStorage.setItem('gas_user_name', newName);
+        location.reload();
+    }
+}
+
+        validatePageSession();
+    </script>
 </body>
 </html>
