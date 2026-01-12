@@ -125,7 +125,6 @@
 
         .user-profile-top img { width: 30px; height: 30px; border-radius: 50%; }
 
-        /* --- CONTENT WRAPPERS --- */
         .content-body { padding: 20px; max-width: 1200px; margin: 0 auto; }
 
         .stats-grid {
@@ -142,7 +141,6 @@
             border: 1px solid #dadce0;
         }
 
-        /* --- UTILS --- */
         .hidden { display: none !important; }
         .overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -153,28 +151,25 @@
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 12px; border-bottom: 2px solid #f1f3f4; }
         td { padding: 12px; border-bottom: 1px solid #f1f3f4; font-size: 14px; }
-        .responsive-table { overflow-x: auto; }
-
+        
         input {
-            width: 100%; padding: 12px; margin: 10px 0;
+            width: 100%; padding: 10px; margin: 10px 0;
             border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;
-            font-size: 14px;
         }
 
-        .btn-action {
-            background: var(--primary); color: white; border: none; 
-            padding: 12px; border-radius: 6px; cursor: pointer; width: 100%;
-            font-weight: 600; transition: 0.2s;
+        .btn {
+            color:white; border:none; padding:10px 20px; 
+            border-radius:5px; cursor:pointer; width:100%;
+            font-weight: bold; transition: 0.2s;
         }
-        .btn-action:hover { opacity: 0.8; }
-        .btn-action:disabled { background: #ccc; cursor: not-allowed; }
-        .btn-danger { background: var(--danger); }
+        .btn:hover { opacity: 0.8; }
+        .btn:disabled { background: #ccc !important; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
     <div id="loading-overlay" style="position:fixed; inset:0; background:white; display:flex; justify-content:center; align-items:center; z-index:9999;">
-        <h3><i class="fas fa-spinner fa-spin"></i> Initializing Dashboard...</h3>
+        <h3><i class="fas fa-spinner fa-spin"></i> Synchronizing...</h3>
     </div>
 
     <div id="mobile-overlay" class="overlay" onclick="toggleSidebar()"></div>
@@ -218,12 +213,12 @@
                 </div>
 
                 <div class="card">
-                    <h3>Recent Activity Log</h3>
+                    <h3><i class="fas fa-history"></i> Recent Activity Log</h3>
                     <div class="responsive-table">
                         <table>
-                            <thead><tr><th>User</th><th>Action</th><th>Time</th></tr></thead>
+                            <thead><tr><th>User Email</th><th>Action</th><th>Timestamp</th></tr></thead>
                             <tbody id="activityLog">
-                                <tr><td colspan="3" style="text-align:center;">Fetching activities...</td></tr>
+                                <tr><td colspan="3" style="text-align:center;">No activity records found.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -231,20 +226,18 @@
             </section>
 
             <section id="profile-view" class="hidden">
-                <h1>Profile Settings</h1>
+                <h1>Account Settings</h1>
                 <div class="stats-grid">
                     <div class="card">
-                        <h3>Update Name</h3>
-                        <p style="font-size: 13px; color: var(--text-sub);">Changing your name will update your display across the portal.</p>
+                        <h3>Update Display Name</h3>
                         <input type="text" id="editName" placeholder="New Display Name">
-                        <button id="btnSaveName" onclick="saveName()" class="btn-action">Update Name</button>
+                        <button id="btnUpdateName" onclick="saveName()" class="btn" style="background:var(--primary);">Update Name</button>
                     </div>
                     <div class="card">
                         <h3>Change Password</h3>
-                        <p style="font-size: 13px; color: var(--text-sub);">Verify current password to set a new one.</p>
                         <input type="password" id="oldPass" placeholder="Current Password">
                         <input type="password" id="newPass" placeholder="New Password">
-                        <button id="btnSavePass" onclick="savePassword()" class="btn-action btn-danger">Update Password</button>
+                        <button id="btnUpdatePass" onclick="savePassword()" class="btn" style="background:var(--danger);">Update Password</button>
                     </div>
                 </div>
             </section>
@@ -252,7 +245,6 @@
     </main>
 
     <script>
-        // Replace this with your actual Deployment URL
         const API_URL = 'https://script.google.com/macros/s/AKfycbyClyzHpvlaiM5OAUCAsE02M8ZtcuQQy3BzDS97qRL3o0OCabAe1IzurwzDyJ6TiTis/exec';
 
         function toggleSidebar() {
@@ -279,14 +271,14 @@
                 const response = await fetch(API_URL, { method: 'POST', body: formData });
                 const result = await response.json();
                 return result;
-            } catch (e) {
-                console.error("API Error:", e);
-                return { success: false, message: "Connection error" };
+            } catch (err) {
+                console.error("API Call failed", err);
+                return { success: false, message: "Network connection error" };
             }
         }
 
-        // Helper to update all name instances in UI
-        function updateUIWithName(name) {
+        // Helper to update all UI elements that use the name
+        function updateUIName(name) {
             document.getElementById('userNameTop').innerText = name;
             document.getElementById('welcomeName').innerText = name;
             document.getElementById('editName').value = name;
@@ -295,16 +287,21 @@
 
         async function init() {
             const token = localStorage.getItem('gas_session_token');
-            const storedName = localStorage.getItem('gas_user_name') || 'User';
+            const cachedName = localStorage.getItem('gas_user_name') || 'User';
             
             if (!token) { window.location.href = 'login.html'; return; }
 
-            // Pre-fill from local storage for speed
-            updateUIWithName(storedName);
+            // Set initial cached UI
+            updateUIName(cachedName);
 
             const result = await callApi('validateSession', { token: token });
             if (result.success) {
                 document.getElementById('loading-overlay').classList.add('hidden');
+                // If backend has a different name, update it
+                if (result.name) {
+                    localStorage.setItem('gas_user_name', result.name);
+                    updateUIName(result.name);
+                }
                 fetchLogs();
             } else {
                 handleLogout();
@@ -315,38 +312,40 @@
             const res = await callApi('getRecentLogs', { token: localStorage.getItem('gas_session_token') });
             if (res.success && res.logs) {
                 const logBody = document.getElementById('activityLog');
+                if (res.logs.length === 0) {
+                    logBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No activity records found.</td></tr>';
+                    return;
+                }
                 logBody.innerHTML = res.logs.map(log => `
                     <tr>
-                        <td>${log[0]}</td>
+                        <td><strong>${log[0]}</strong></td>
                         <td>${log[1]}</td>
                         <td>${new Date(log[2]).toLocaleString()}</td>
                     </tr>`).join('');
-            } else {
-                document.getElementById('activityLog').innerHTML = '<tr><td colspan="3" style="text-align:center;">No activity found.</td></tr>';
             }
         }
 
         async function saveName() {
-            const btn = document.getElementById('btnSaveName');
-            const newName = document.getElementById('editName').value.trim();
+            const btn = document.getElementById('btnUpdateName');
+            const newName = document.getElementById('editName').value;
             
-            if(!newName) return alert("Please enter a valid name");
+            if(!newName) return alert("Please enter a new name");
 
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
 
             const res = await callApi('updateProfile', { 
                 token: localStorage.getItem('gas_session_token'), 
                 newName: newName 
             });
 
-            if (res && res.success) {
+            if (res.success) {
                 localStorage.setItem('gas_user_name', newName);
-                updateUIWithName(newName); // Instant UI sync
-                alert("Profile name updated successfully!");
-                fetchLogs(); // Refresh activity log
+                updateUIName(newName); // Instant UI refresh
+                alert("Success: Profile name updated!");
+                fetchLogs(); // Refresh log to show the update action
             } else {
-                alert("Update failed: " + (res.message || "Unknown error"));
+                alert("Error: " + (res.message || "Failed to update name"));
             }
             
             btn.disabled = false;
@@ -354,14 +353,14 @@
         }
 
         async function savePassword() {
-            const btn = document.getElementById('btnSavePass');
+            const btn = document.getElementById('btnUpdatePass');
             const oldPass = document.getElementById('oldPass').value;
             const newPass = document.getElementById('newPass').value;
 
             if(!oldPass || !newPass) return alert("Please fill in both password fields");
 
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Changing...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
 
             const res = await callApi('changePassword', { 
                 token: localStorage.getItem('gas_session_token'), 
@@ -369,13 +368,13 @@
                 newPassword: newPass
             });
 
-            if (res && res.success) {
-                alert("Password changed successfully!");
+            if (res.success) {
+                alert("Success: Password changed successfully!");
                 document.getElementById('oldPass').value = '';
                 document.getElementById('newPass').value = '';
                 fetchLogs();
             } else {
-                alert("Failed to change password: " + (res.message || "Invalid current password"));
+                alert("Error: " + (res.message || "Incorrect current password"));
             }
             
             btn.disabled = false;
@@ -383,13 +382,11 @@
         }
 
         function handleLogout() {
-            const token = localStorage.getItem('gas_session_token');
-            callApi('logout', { token: token });
             localStorage.clear();
             window.location.href = 'login.html';
         }
 
-        // Initialize on load
+        // Initialize dashboard
         init();
     </script>
 </body>
