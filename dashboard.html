@@ -182,6 +182,28 @@
         </div>
     </nav>
 
+    <div id="profile-section" class="hidden">
+    <div class="welcome-section">
+        <h1>Profile Settings</h1>
+        <p>Manage your account information and security.</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="recent-activity">
+            <h3>Update Name</h3>
+            <input type="text" id="editName" style="width:90%; padding:10px; margin-bottom:10px; border:1px solid #ddd;">
+            <button onclick="saveName()" class="nav-item active" style="border:none; width:100%; justify-content:center;">Save Name</button>
+        </div>
+
+        <div class="recent-activity">
+            <h3>Change Password</h3>
+            <input type="password" id="oldPass" placeholder="Current Password" style="width:90%; padding:10px; margin-bottom:10px; border:1px solid #ddd;">
+            <input type="password" id="newPass" placeholder="New Password" style="width:90%; padding:10px; margin-bottom:10px; border:1px solid #ddd;">
+            <button onclick="savePassword()" class="nav-item logout-btn" style="border:none; width:100%; justify-content:center; background:#eee;">Update Password</button>
+        </div>
+    </div>
+</div>
+
     <main id="main-content" class="hidden">
         <header>
             <div class="user-profile-top">
@@ -238,7 +260,7 @@
     </main>
 
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbw4X9FOvt4grdrIfR3Jmkt-EL4B05CFJizLx2ziYgqdgxXVXLitZdZ9bv3KpMWhq1uD/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbwrRDThkEBx-H6BcU7h85991yNr9uZfyHjP1JOFsFxYE-9INk1jDbe-7qG_KPgiWw1L/exec';
 
         async function validatePageSession() {
             const token = localStorage.getItem('gas_session_token');
@@ -286,6 +308,31 @@
             localStorage.clear();
             window.location.href = 'login.html';
         }
+
+        function showSection(sectionId) {
+    document.getElementById('welcome-section-main').classList.add('hidden'); // Group your dashboard cards in this div
+    document.getElementById('profile-section').classList.add('hidden');
+    
+    document.getElementById(sectionId).classList.remove('hidden');
+    
+    // Toggle active class on sidebar
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+}
+
+async function saveName() {
+    const newName = document.getElementById('editName').value;
+    const res = await callApi('updateProfile', { 
+        token: localStorage.getItem('gas_session_token'), 
+        newName: newName 
+    });
+    
+    if(res.success) {
+        alert("Name updated!");
+        localStorage.setItem('gas_user_name', newName);
+        location.reload();
+    }
+}
 
         validatePageSession();
     </script>
