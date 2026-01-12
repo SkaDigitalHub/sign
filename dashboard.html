@@ -17,11 +17,12 @@
         }
 
         body {
-            font-family: 'Google Sans', Roboto, Arial, sans-serif;
+            font-family: 'Segoe UI', Roboto, sans-serif;
             background-color: var(--bg-body);
             margin: 0;
             display: flex;
             color: var(--text-main);
+            overflow-x: hidden;
         }
 
         /* --- SIDEBAR --- */
@@ -33,6 +34,14 @@
             display: flex;
             flex-direction: column;
             position: fixed;
+            transition: transform 0.3s ease;
+            z-index: 1001;
+        }
+
+        /* Mobile Sidebar Off-screen */
+        @media (max-width: 768px) {
+            nav { transform: translateX(-100%); }
+            nav.open { transform: translateX(0); }
         }
 
         .nav-logo {
@@ -40,13 +49,15 @@
             font-size: 22px;
             font-weight: bold;
             color: var(--primary);
-            border-bottom: 1px solid #f1f3f4;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .nav-links {
-            flex: 1;
-            padding: 16px 0;
-        }
+        .close-sidebar { display: none; cursor: pointer; color: var(--text-sub); }
+        @media (max-width: 768px) { .close-sidebar { display: block; } }
+
+        .nav-links { flex: 1; padding: 16px 0; }
 
         .nav-item {
             padding: 12px 24px;
@@ -56,15 +67,17 @@
             text-decoration: none;
             transition: 0.2s;
             cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            font-size: 16px;
         }
 
         .nav-item i { margin-right: 15px; width: 20px; }
-
         .nav-item:hover, .nav-item.active {
             background: #e8f0fe;
             color: var(--primary);
             border-radius: 0 50px 50px 0;
-            margin-right: 10px;
         }
 
         .logout-btn { color: var(--danger); margin-top: auto; border-top: 1px solid #f1f3f4; }
@@ -74,267 +87,231 @@
             margin-left: var(--sidebar-width);
             flex: 1;
             min-height: 100vh;
+            transition: margin 0.3s ease;
         }
+
+        @media (max-width: 768px) { main { margin-left: 0; } }
 
         header {
             background: #fff;
-            padding: 12px 32px;
+            padding: 12px 20px;
             display: flex;
-            justify-content: flex-end; /* Pushes name to top-right */
+            justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid #dadce0;
             position: sticky;
             top: 0;
+            z-index: 1000;
         }
+
+        .menu-toggle {
+            display: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--text-sub);
+        }
+
+        @media (max-width: 768px) { .menu-toggle { display: block; } }
 
         .user-profile-top {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             background: #f8f9fa;
-            padding: 6px 16px;
+            padding: 5px 12px;
             border-radius: 50px;
             border: 1px solid #dadce0;
         }
 
-        .user-profile-top img {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: var(--primary);
-        }
+        .user-profile-top img { width: 30px; height: 30px; border-radius: 50%; }
 
-        /* --- DASHBOARD GRID --- */
-        .content-body { padding: 32px; }
-
-        .welcome-section {
-            text-align: center;
-            margin-bottom: 40px;
-        }
+        /* --- CONTENT WRAPPERS --- */
+        .content-body { padding: 20px; max-width: 1200px; margin: 0 auto; }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 24px;
-            margin-bottom: 40px;
-        }
-
-        .stat-card {
-            background: #fff;
-            padding: 24px;
-            border-radius: 12px;
-            border: 1px solid #dadce0;
-            display: flex;
-            align-items: center;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 20px;
+            margin-bottom: 30px;
         }
 
-        .stat-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-        }
-
-        .blue { background: #e8f0fe; color: var(--primary); }
-        .green { background: #e6f4ea; color: var(--secondary); }
-
-        /* --- TABLES --- */
-        .recent-activity {
+        .card {
             background: #fff;
+            padding: 20px;
             border-radius: 12px;
             border: 1px solid #dadce0;
-            padding: 24px;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 16px;
-        }
-
-        th { text-align: left; color: var(--text-sub); font-weight: 500; padding: 12px; border-bottom: 2px solid #f1f3f4; }
-        td { padding: 16px 12px; border-bottom: 1px solid #f1f3f4; font-size: 14px; }
-
-        #loading-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: white; display: flex; justify-content: center; align-items: center; z-index: 2000;
-        }
+        /* --- UTILS --- */
         .hidden { display: none !important; }
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 1000; display: none;
+        }
+        .overlay.show { display: block; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px; border-bottom: 2px solid #f1f3f4; }
+        td { padding: 12px; border-bottom: 1px solid #f1f3f4; font-size: 14px; }
+        .responsive-table { overflow-x: auto; }
+
+        input {
+            width: 100%; padding: 10px; margin: 10px 0;
+            border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;
+        }
     </style>
 </head>
 <body>
 
-    <div id="loading-overlay">
-        <h3><i class="fas fa-spinner fa-spin"></i> Loading Dashboard...</h3>
+    <div id="loading-overlay" style="position:fixed; inset:0; background:white; display:flex; justify-content:center; align-items:center; z-index:9999;">
+        <h3><i class="fas fa-spinner fa-spin"></i> Loading...</h3>
     </div>
 
-    <nav id="sidebar" class="hidden">
-        <div class="nav-logo">AppPortal</div>
+    <div id="mobile-overlay" class="overlay" onclick="toggleSidebar()"></div>
+
+    <nav id="sidebar">
+        <div class="nav-logo">
+            AppPortal
+            <i class="fas fa-times close-sidebar" onclick="toggleSidebar()"></i>
+        </div>
         <div class="nav-links">
-            <a href="#" class="nav-item active"><i class="fas fa-home"></i> Dashboard</a>
-            <a href="#" class="nav-item"  onclick="showSection(sectionId)"><i class="fas fa-user-circle"></i> Profile Settings</a>
-            <a href="#" class="nav-item"><i class="fas fa-chart-line"></i> Analytics</a>
-            <a href="#" class="nav-item logout-btn" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Log Out</a>
+            <button class="nav-item active" onclick="showSection('dashboard-view')"><i class="fas fa-home"></i> Dashboard</button>
+            <button class="nav-item" onclick="showSection('profile-view')"><i class="fas fa-user-circle"></i> Profile Settings</button>
+            <button class="nav-item" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Log Out</button>
         </div>
     </nav>
 
-    <div id="profile-section" class="hidden">
-    <div class="welcome-section">
-        <h1>Profile Settings</h1>
-        <p>Manage your account information and security.</p>
-    </div>
-
-    <div class="stats-grid">
-        <div class="recent-activity">
-            <h3>Update Name</h3>
-            <input type="text" id="editName" style="width:90%; padding:10px; margin-bottom:10px; border:1px solid #ddd;">
-            <button onclick="saveName()" class="nav-item active" style="border:none; width:100%; justify-content:center;">Save Name</button>
-        </div>
-
-        <div class="recent-activity">
-            <h3>Change Password</h3>
-            <input type="password" id="oldPass" placeholder="Current Password" style="width:90%; padding:10px; margin-bottom:10px; border:1px solid #ddd;">
-            <input type="password" id="newPass" placeholder="New Password" style="width:90%; padding:10px; margin-bottom:10px; border:1px solid #ddd;">
-            <button onclick="savePassword()" class="nav-item logout-btn" style="border:none; width:100%; justify-content:center; background:#eee;">Update Password</button>
-        </div>
-    </div>
-</div>
-
-    <main id="main-content" class="hidden">
+    <main>
         <header>
+            <i class="fas fa-bars menu-toggle" onclick="toggleSidebar()"></i>
             <div class="user-profile-top">
-                <span id="userNameTop">Guest</span>
-                <img src="https://ui-avatars.com/api/?name=User&background=4285f4&color=fff" id="userAvatar">
+                <span id="userNameTop">User</span>
+                <img src="" id="userAvatar">
             </div>
         </header>
 
         <div class="content-body">
-            <div class="welcome-section">
-                <h1>Welcome, <span id="welcomeName">User</span>!</h1>
-                <p>Here is what's happening with your account today.</p>
-            </div>
+            <section id="dashboard-view">
+                <div style="margin-bottom: 30px;">
+                    <h1>Welcome, <span id="welcomeName">User</span>!</h1>
+                </div>
 
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon blue"><i class="fas fa-clock"></i></div>
-                    <div>
-                        <div style="color:var(--text-sub); font-size: 14px;">Last Login</div>
-                        <div style="font-size: 18px; font-weight: bold;" id="lastLoginTime">Today, 12:45 PM</div>
+                <div class="stats-grid">
+                    <div class="card" style="display:flex; align-items:center; gap:15px;">
+                        <i class="fas fa-clock" style="font-size:30px; color:var(--primary)"></i>
+                        <div><small>Status</small><br><strong>Session Active</strong></div>
+                    </div>
+                    <div class="card" style="display:flex; align-items:center; gap:15px;">
+                        <i class="fas fa-shield-alt" style="font-size:30px; color:var(--secondary)"></i>
+                        <div><small>Security</small><br><strong>Protected</strong></div>
                     </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-icon green"><i class="fas fa-shield-alt"></i></div>
-                    <div>
-                        <div style="color:var(--text-sub); font-size: 14px;">Security Status</div>
-                        <div style="font-size: 18px; font-weight: bold; color: var(--secondary);">Active</div>
+
+                <div class="card">
+                    <h3>Recent Activity Log</h3>
+                    <div class="responsive-table">
+                        <table>
+                            <thead><tr><th>User</th><th>Action</th><th>Time</th></tr></thead>
+                            <tbody id="activityLog"></tbody>
+                        </table>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="recent-activity">
-                <h3><i class="fas fa-history"></i> Recent Activity Log</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>User</th>
-                            <th>Action</th>
-                            <th>Time</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="activityLog">
-                        <tr>
-                            <td id="tableUser">User Name</td>
-                            <td>Session Validated</td>
-                            <td id="currentTime">Just now</td>
-                            <td><span style="color:var(--secondary)">● Success</span></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            <section id="profile-view" class="hidden">
+                <h1>Profile Settings</h1>
+                <div class="stats-grid">
+                    <div class="card">
+                        <h3>Update Name</h3>
+                        <input type="text" id="editName" placeholder="New Display Name">
+                        <button onclick="saveName()" style="background:var(--primary); color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; width:100%;">Update Name</button>
+                    </div>
+                    <div class="card">
+                        <h3>Change Password</h3>
+                        <input type="password" id="oldPass" placeholder="Current Password">
+                        <input type="password" id="newPass" placeholder="New Password">
+                        <button onclick="savePassword()" style="background:var(--danger); color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; width:100%;">Update Password</button>
+                    </div>
+                </div>
+            </section>
         </div>
     </main>
 
     <script>
         const API_URL = 'https://script.google.com/macros/s/AKfycbwrRDThkEBx-H6BcU7h85991yNr9uZfyHjP1JOFsFxYE-9INk1jDbe-7qG_KPgiWw1L/exec';
 
-        async function validatePageSession() {
-            const token = localStorage.getItem('gas_session_token');
-            const cachedName = localStorage.getItem('gas_user_name');
+        // 1. Sidebar Toggle Logic
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('mobile-overlay').classList.toggle('show');
+        }
 
+        // 2. Navigation Logic
+        function showSection(sectionId) {
+            document.getElementById('dashboard-view').classList.add('hidden');
+            document.getElementById('profile-view').classList.add('hidden');
+            document.getElementById(sectionId).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            
+            if (window.innerWidth <= 768) toggleSidebar();
+        }
+
+        // 3. API Communication
+        async function callApi(func, data) {
+            const formData = new URLSearchParams();
+            formData.append('function', func);
+            formData.append('data', JSON.stringify(data));
+            const response = await fetch(API_URL, { method: 'POST', body: formData });
+            return await response.json();
+        }
+
+        // 4. Auth & Initialization
+        async function init() {
+            const token = localStorage.getItem('gas_session_token');
+            const name = localStorage.getItem('gas_user_name');
             if (!token) { window.location.href = 'login.html'; return; }
 
-            try {
-                const formData = new URLSearchParams();
-                formData.append('function', 'validateSession');
-                formData.append('data', JSON.stringify({ token: token }));
-
-                const response = await fetch(API_URL, { method: 'POST', body: formData });
-                const result = await response.json();
-
-                if (result.success) {
-                    // Update UI
-                    document.getElementById('loading-overlay').classList.add('hidden');
-                    document.getElementById('sidebar').classList.remove('hidden');
-                    document.getElementById('main-content').classList.remove('hidden');
-                    
-                    const name = cachedName || 'User';
-                    document.getElementById('userNameTop').innerText = name;
-                    document.getElementById('welcomeName').innerText = name;
-                    document.getElementById('tableUser').innerText = name;
-                    document.getElementById('currentTime').innerText = new Date().toLocaleTimeString();
-                    document.getElementById('userAvatar').src = `https://ui-avatars.com/api/?name=${name}&background=4285f4&color=fff`;
-                } else {
-                    handleLogout();
-                }
-            } catch (error) {
-                alert("Session verification failed.");
+            const result = await callApi('validateSession', { token: token });
+            if (result.success) {
+                document.getElementById('loading-overlay').classList.add('hidden');
+                document.getElementById('userNameTop').innerText = name;
+                document.getElementById('welcomeName').innerText = name;
+                document.getElementById('editName').value = name;
+                document.getElementById('userAvatar').src = `https://ui-avatars.com/api/?name=${name}&background=4285f4&color=fff`;
+                fetchLogs();
+            } else {
                 handleLogout();
             }
         }
 
-        async function handleLogout() {
-            const token = localStorage.getItem('gas_session_token');
-            if (token) {
-                const formData = new URLSearchParams();
-                formData.append('function', 'logout');
-                formData.append('data', JSON.stringify({ token: token }));
-                fetch(API_URL, { method: 'POST', body: formData });
+        async function fetchLogs() {
+            const res = await callApi('getRecentLogs', { token: localStorage.getItem('gas_session_token') });
+            if (res.success) {
+                const logBody = document.getElementById('activityLog');
+                logBody.innerHTML = res.logs.map(log => `<tr><td>${log[0]}</td><td>${log[1]}</td><td>${new Date(log[2]).toLocaleTimeString()}</td></tr>`).join('');
             }
+        }
+
+        async function saveName() {
+            const newName = document.getElementById('editName').value;
+            const res = await callApi('updateProfile', { token: localStorage.getItem('gas_session_token'), newName: newName });
+            if (res.success) {
+                localStorage.setItem('gas_user_name', newName);
+                alert("Profile Updated!");
+                location.reload();
+            }
+        }
+
+        function handleLogout() {
+            const token = localStorage.getItem('gas_session_token');
+            callApi('logout', { token: token });
             localStorage.clear();
             window.location.href = 'login.html';
         }
 
-        function showSection(sectionId) {
-    document.getElementById('welcome-section-main').classList.add('hidden'); // Group your dashboard cards in this div
-    document.getElementById('profile-section').classList.add('hidden');
-    
-    document.getElementById(sectionId).classList.remove('hidden');
-    
-    // Toggle active class on sidebar
-    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    event.currentTarget.classList.add('active');
-}
-
-async function saveName() {
-    const newName = document.getElementById('editName').value;
-    const res = await callApi('updateProfile', { 
-        token: localStorage.getItem('gas_session_token'), 
-        newName: newName 
-    });
-    
-    if(res.success) {
-        alert("Name updated!");
-        localStorage.setItem('gas_user_name', newName);
-        location.reload();
-    }
-}
-
-        validatePageSession();
+        init();
     </script>
 </body>
 </html>
