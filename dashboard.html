@@ -1,70 +1,153 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>User Dashboard</title>
-  <style>
-    body { font-family: sans-serif; display: flex; justify-content: center; padding-top: 50px; }
-    .card { border: 1px solid #ddd; padding: 20px; border-radius: 8px; width: 300px; text-align: center; }
-    .hidden { display: none; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Dashboard</title>
+    <style>
+        :root {
+            --primary: #4285f4;
+            --danger: #d93025;
+            --bg: #f8f9fa;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .user-badge {
+            background: #e8f0fe;
+            color: var(--primary);
+            padding: 10px;
+            border-radius: 50px;
+            display: inline-block;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        h1 { color: #3c4043; margin-bottom: 10px; }
+        p { color: #5f6368; line-height: 1.5; }
+        .btn-logout {
+            background-color: var(--danger);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+            transition: opacity 0.2s;
+        }
+        .btn-logout:hover { opacity: 0.9; }
+        #loading-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .hidden { display: none !important; }
+    </style>
 </head>
 <body>
 
-  <div id="loading">Verifying session...</div>
-
-  <div id="mainContent" class="hidden">
-    <div class="card">
-      <h1>Welcome!</h1>
-      <p id="userGreeting"></p>
-      <hr>
-      <button onclick="handleLogout()">Logout</button>
+    <div id="loading-overlay">
+        <h3>Verifying Session...</h3>
     </div>
-  </div>
 
-  <script>
-    const API_URL = 'YOUR_APPS_SCRIPT_URL'; // Replace with your Web App URL
+    <div id="dashboard-content" class="container hidden">
+        <div class="user-badge" id="userNameDisplay">User</div>
+        <h1>Welcome Back!</h1>
+        <p>This is a secure area. Your session token is active and validated by Google Apps Script.</p>
+        
+        <div id="userData" style="text-align: left; background: #eee; padding: 10px; border-radius: 5px; margin: 15px 0; font-family: monospace;">
+            Email: <span id="userEmailDisplay">...</span>
+        </div>
 
-    async function checkSession() {
-      const token = localStorage.getItem('session_token');
-      
-      if (!token) {
-        window.location.href = 'login.html';
-        return;
-      }
+        <button class="btn-logout" onclick="handleLogout()">Sign Out</button>
+    </div>
 
-      const formData = new FormData();
-      formData.append('function', 'validateSession');
-      formData.append('data', JSON.stringify({ token: token }));
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyLs9Sa_daLUVR1Hv2Y17FnfElE3BGlFDmFJTP2t4HTYOBWb430oROxCS062OCXpdpz/exec';
 
-      try {
-        const response = await fetch(API_URL, { method: 'POST', body: formData });
-        const result = await response.json();
+        /**
+         * 1. SESSION CHECK (Runs on Page Load)
+         */
+        async function validatePageSession() {
+            const token = localStorage.getItem('gas_session_token');
+            const cachedName = localStorage.getItem('gas_user_name');
 
-        if (result.success) {
-          document.getElementById('loading').classList.add('hidden');
-          document.getElementById('mainContent').classList.remove('hidden');
-          document.getElementById('userGreeting').innerText = `Logged in as: ${result.email}`;
-        } else {
-          handleLogout(); // Token expired or invalid
+            // If no token exists locally, kick to login immediately
+            if (!token) {
+                window.location.href = 'login.html'; 
+                return;
+            }
+
+            try {
+                const formData = new URLSearchParams();
+                formData.append('function', 'validateSession');
+                formData.append('data', JSON.stringify({ token: token }));
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Session is valid! Show the dashboard
+                    document.getElementById('loading-overlay').classList.add('hidden');
+                    document.getElementById('dashboard-content').classList.remove('hidden');
+                    document.getElementById('userNameDisplay').innerText = cachedName || 'User';
+                    document.getElementById('userEmailDisplay').innerText = result.email;
+                } else {
+                    // Token expired or fake
+                    handleLogout();
+                }
+            } catch (error) {
+                console.error("Auth Error:", error);
+                alert("Connection lost. Please try again.");
+            }
         }
-      } catch (e) {
-        alert("Connection error");
-      }
-    }
 
-    async function handleLogout() {
-      const token = localStorage.getItem('session_token');
-      const formData = new FormData();
-      formData.append('function', 'logout');
-      formData.append('data', JSON.stringify({ token: token }));
+        /**
+         * 2. LOGOUT FUNCTION
+         */
+        async function handleLogout() {
+            const token = localStorage.getItem('gas_session_token');
+            
+            if (token) {
+                const formData = new URLSearchParams();
+                formData.append('function', 'logout');
+                formData.append('data', JSON.stringify({ token: token }));
+                
+                // Tell the server to delete the token, but don't wait for response
+                fetch(API_URL, { method: 'POST', body: formData });
+            }
 
-      await fetch(API_URL, { method: 'POST', body: formData });
-      localStorage.removeItem('session_token');
-      window.location.href = 'login.html';
-    }
+            // Clear local data and redirect
+            localStorage.removeItem('gas_session_token');
+            localStorage.removeItem('gas_user_name');
+            window.location.href = 'login.html';
+        }
 
-    // Run on page load
-    checkSession();
-  </script>
+        // Initialize session check
+        validatePageSession();
+    </script>
 </body>
 </html>
