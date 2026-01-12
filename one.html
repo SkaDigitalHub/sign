@@ -242,7 +242,7 @@
     </main>
 
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbwrRDThkEBx-H6BcU7h85991yNr9uZfyHjP1JOFsFxYE-9INk1jDbe-7qG_KPgiWw1L/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyClyzHpvlaiM5OAUCAsE02M8ZtcuQQy3BzDS97qRL3o0OCabAe1IzurwzDyJ6TiTis/exec';
 
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('open');
@@ -260,13 +260,21 @@
             if (window.innerWidth <= 768) toggleSidebar();
         }
 
-        async function callApi(func, data) {
-            const formData = new URLSearchParams();
-            formData.append('function', func);
-            formData.append('data', JSON.stringify(data));
-            const response = await fetch(API_URL, { method: 'POST', body: formData });
-            return await response.json();
-        }
+       async function callApi(func, data) {
+    const formData = new URLSearchParams();
+    formData.append('function', func);
+    formData.append('data', JSON.stringify(data));
+    
+    try {
+        const response = await fetch(API_URL, { method: 'POST', body: formData });
+        const result = await response.json();
+        return result;
+    } catch (e) {
+        console.error("API Call failed:", e);
+        // Returning a fallback object prevents the "undefined" error
+        return { success: false, message: "Network error or Script timeout" };
+    }
+}
 
         // Updates all name instances in the UI instantly
         function updateUIWithName(name) {
