@@ -125,6 +125,7 @@
 
         .user-profile-top img { width: 30px; height: 30px; border-radius: 50%; }
 
+        /* --- CONTENT WRAPPERS --- */
         .content-body { padding: 20px; max-width: 1200px; margin: 0 auto; }
 
         .stats-grid {
@@ -141,6 +142,7 @@
             border: 1px solid #dadce0;
         }
 
+        /* --- UTILS --- */
         .hidden { display: none !important; }
         .overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -151,16 +153,17 @@
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 12px; border-bottom: 2px solid #f1f3f4; }
         td { padding: 12px; border-bottom: 1px solid #f1f3f4; font-size: 14px; }
-        
+        .responsive-table { overflow-x: auto; }
+
         input {
             width: 100%; padding: 10px; margin: 10px 0;
             border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;
         }
 
         .btn {
-            color:white; border:none; padding:10px 20px; 
-            border-radius:5px; cursor:pointer; width:100%;
-            font-weight: bold; transition: opacity 0.2s;
+            color: white; border: none; padding: 10px 20px; 
+            border-radius: 5px; cursor: pointer; width: 100%;
+            font-weight: bold; transition: background 0.2s;
         }
         .btn:disabled { background: #ccc !important; cursor: not-allowed; }
     </style>
@@ -168,7 +171,7 @@
 <body>
 
     <div id="loading-overlay" style="position:fixed; inset:0; background:white; display:flex; justify-content:center; align-items:center; z-index:9999;">
-        <h3><i class="fas fa-spinner fa-spin"></i> Loading...</h3>
+        <h3><i class="fas fa-spinner fa-spin"></i> Synchronizing Dashboard...</h3>
     </div>
 
     <div id="mobile-overlay" class="overlay" onclick="toggleSidebar()"></div>
@@ -207,16 +210,18 @@
                     </div>
                     <div class="card" style="display:flex; align-items:center; gap:15px;">
                         <i class="fas fa-shield-alt" style="font-size:30px; color:var(--secondary)"></i>
-                        <div><small>Security</small><br><strong>Protected</strong></div>
+                        <div><small>Security</small><br><strong>Encrypted</strong></div>
                     </div>
                 </div>
 
                 <div class="card">
-                    <h3>Recent Activity Log</h3>
+                    <h3><i class="fas fa-list-ul"></i> Recent Activity Log</h3>
                     <div class="responsive-table">
                         <table>
-                            <thead><tr><th>User</th><th>Action</th><th>Time</th></tr></thead>
-                            <tbody id="activityLog"></tbody>
+                            <thead><tr><th>Email</th><th>Action</th><th>Time</th></tr></thead>
+                            <tbody id="activityLog">
+                                <tr><td colspan="3" style="text-align:center;">Fetching activity...</td></tr>
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -242,6 +247,7 @@
     </main>
 
     <script>
+        // Use your current deployed Web App URL
         const API_URL = 'https://script.google.com/macros/s/AKfycbyClyzHpvlaiM5OAUCAsE02M8ZtcuQQy3BzDS97qRL3o0OCabAe1IzurwzDyJ6TiTis/exec';
 
         function toggleSidebar() {
@@ -260,40 +266,44 @@
             if (window.innerWidth <= 768) toggleSidebar();
         }
 
-       async function callApi(func, data) {
-    const formData = new URLSearchParams();
-    formData.append('function', func);
-    formData.append('data', JSON.stringify(data));
-    
-    try {
-        const response = await fetch(API_URL, { method: 'POST', body: formData });
-        const result = await response.json();
-        return result;
-    } catch (e) {
-        console.error("API Call failed:", e);
-        // Returning a fallback object prevents the "undefined" error
-        return { success: false, message: "Network error or Script timeout" };
-    }
-}
+        async function callApi(func, data) {
+            const formData = new URLSearchParams();
+            formData.append('function', func);
+            formData.append('data', JSON.stringify(data));
+            
+            try {
+                const response = await fetch(API_URL, { method: 'POST', body: formData });
+                const result = await response.json();
+                return result;
+            } catch (e) {
+                console.error("API Error:", e);
+                return { success: false, message: "Connection error: Check your Internet and Web App Deployment." };
+            }
+        }
 
-        // Updates all name instances in the UI instantly
         function updateUIWithName(name) {
-            document.getElementById('userNameTop').innerText = name;
-            document.getElementById('welcomeName').innerText = name;
-            document.getElementById('editName').value = name;
-            document.getElementById('userAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=4285f4&color=fff`;
+            const safeName = name || "User";
+            document.getElementById('userNameTop').innerText = safeName;
+            document.getElementById('welcomeName').innerText = safeName;
+            document.getElementById('editName').value = safeName;
+            document.getElementById('userAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(safeName)}&background=4285f4&color=fff`;
         }
 
         async function init() {
             const token = localStorage.getItem('gas_session_token');
+            const cachedName = localStorage.getItem('gas_user_name');
+            
             if (!token) { window.location.href = 'login.html'; return; }
+
+            // Pre-fill with cache for speed
+            if(cachedName) updateUIWithName(cachedName);
 
             const result = await callApi('validateSession', { token: token });
             if (result.success) {
                 document.getElementById('loading-overlay').classList.add('hidden');
-                // Use the name from the server if possible, fallback to local
-                const currentName = result.name || localStorage.getItem('gas_user_name');
-                updateUIWithName(currentName);
+                // Use email if name is missing from session
+                const displayName = cachedName || result.email.split('@')[0];
+                updateUIWithName(displayName);
                 fetchLogs();
             } else {
                 handleLogout();
@@ -302,57 +312,55 @@
 
         async function fetchLogs() {
             const res = await callApi('getRecentLogs', { token: localStorage.getItem('gas_session_token') });
-            if (res.success && res.logs) {
-                const logBody = document.getElementById('activityLog');
+            const logBody = document.getElementById('activityLog');
+            
+            if (res.success && res.logs && res.logs.length > 0) {
                 logBody.innerHTML = res.logs.map(log => `
                     <tr>
-                        <td>${log[0]}</td>
+                        <td><strong>${log[0]}</strong></td>
                         <td>${log[1]}</td>
                         <td>${new Date(log[2]).toLocaleString()}</td>
                     </tr>`).join('');
+            } else {
+                logBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No recent logs found.</td></tr>';
             }
         }
 
         async function saveName() {
-    const btn = document.getElementById('btnSaveName');
-    const newName = document.getElementById('editName').value;
-    
-    if(!newName) return alert("Please enter a name");
+            const btn = document.getElementById('btnSaveName');
+            const newName = document.getElementById('editName').value;
+            
+            if(!newName) return alert("Please enter a name");
 
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
 
-    const res = await callApi('updateProfile', { 
-        token: localStorage.getItem('gas_session_token'), 
-        newName: newName 
-    });
+            const res = await callApi('updateProfile', { 
+                token: localStorage.getItem('gas_session_token'), 
+                newName: newName 
+            });
 
-    if (res && res.success) {
-        // Update Local Storage
-        localStorage.setItem('gas_user_name', newName);
-        // Update the actual page elements immediately
-        document.getElementById('userNameTop').innerText = newName;
-        document.getElementById('welcomeName').innerText = newName;
-        document.getElementById('userAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(newName)}&background=4285f4&color=fff`;
-        
-        alert("Name updated successfully!");
-    } else {
-        alert("Error: " + (res.message || "Unknown error occurred"));
-    }
-    
-    btn.disabled = false;
-    btn.innerText = 'Update Name';
-}}
+            if (res && res.success) {
+                localStorage.setItem('gas_user_name', newName);
+                updateUIWithName(newName); // Instant update
+                alert("Profile Name Updated!");
+                fetchLogs();
+            } else {
+                alert("Error: " + (res.message || "Unknown server error"));
+            }
+            btn.disabled = false;
+            btn.innerText = 'Update Name';
+        }
 
         async function savePassword() {
             const btn = document.getElementById('btnSavePass');
             const oldPass = document.getElementById('oldPass').value;
             const newPass = document.getElementById('newPass').value;
 
-            if(!oldPass || !newPass) return alert("Please fill in both fields");
+            if(!oldPass || !newPass) return alert("Fill in current and new password");
 
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Changing...';
 
             const res = await callApi('changePassword', { 
                 token: localStorage.getItem('gas_session_token'), 
@@ -360,19 +368,21 @@
                 newPassword: newPass
             });
 
-            if (res.success) {
-                alert("Password Updated Successfully!");
+            if (res && res.success) {
+                alert("Password changed successfully!");
                 document.getElementById('oldPass').value = '';
                 document.getElementById('newPass').value = '';
                 fetchLogs();
             } else {
-                alert("Error: " + res.message);
+                alert("Error: " + (res.message || "Verification failed"));
             }
             btn.disabled = false;
             btn.innerText = 'Update Password';
         }
 
         function handleLogout() {
+            const token = localStorage.getItem('gas_session_token');
+            if(token) callApi('logout', { token: token });
             localStorage.clear();
             window.location.href = 'login.html';
         }
