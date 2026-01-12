@@ -314,29 +314,35 @@
         }
 
         async function saveName() {
-            const btn = document.getElementById('btnSaveName');
-            const newName = document.getElementById('editName').value;
-            if(!newName) return alert("Please enter a name");
+    const btn = document.getElementById('btnSaveName');
+    const newName = document.getElementById('editName').value;
+    
+    if(!newName) return alert("Please enter a name");
 
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
 
-            const res = await callApi('updateProfile', { 
-                token: localStorage.getItem('gas_session_token'), 
-                newName: newName 
-            });
+    const res = await callApi('updateProfile', { 
+        token: localStorage.getItem('gas_session_token'), 
+        newName: newName 
+    });
 
-            if (res.success) {
-                localStorage.setItem('gas_user_name', newName);
-                updateUIWithName(newName); // Immediate UI update
-                alert("Profile Updated!");
-                fetchLogs(); // Refresh logs to show the change
-            } else {
-                alert("Error: " + res.message);
-            }
-            btn.disabled = false;
-            btn.innerText = 'Update Name';
-        }
+    if (res && res.success) {
+        // Update Local Storage
+        localStorage.setItem('gas_user_name', newName);
+        // Update the actual page elements immediately
+        document.getElementById('userNameTop').innerText = newName;
+        document.getElementById('welcomeName').innerText = newName;
+        document.getElementById('userAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(newName)}&background=4285f4&color=fff`;
+        
+        alert("Name updated successfully!");
+    } else {
+        alert("Error: " + (res.message || "Unknown error occurred"));
+    }
+    
+    btn.disabled = false;
+    btn.innerText = 'Update Name';
+}}
 
         async function savePassword() {
             const btn = document.getElementById('btnSavePass');
