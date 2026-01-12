@@ -156,22 +156,25 @@
         .responsive-table { overflow-x: auto; }
 
         input {
-            width: 100%; padding: 10px; margin: 10px 0;
+            width: 100%; padding: 12px; margin: 10px 0;
             border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;
+            font-size: 14px;
         }
 
-        .btn {
-            color: white; border: none; padding: 10px 20px; 
-            border-radius: 5px; cursor: pointer; width: 100%;
-            font-weight: bold; transition: background 0.2s;
+        .btn-action {
+            background: var(--primary); color: white; border: none; 
+            padding: 12px; border-radius: 6px; cursor: pointer; width: 100%;
+            font-weight: 600; transition: 0.2s;
         }
-        .btn:disabled { background: #ccc !important; cursor: not-allowed; }
+        .btn-action:hover { opacity: 0.8; }
+        .btn-action:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-danger { background: var(--danger); }
     </style>
 </head>
 <body>
 
     <div id="loading-overlay" style="position:fixed; inset:0; background:white; display:flex; justify-content:center; align-items:center; z-index:9999;">
-        <h3><i class="fas fa-spinner fa-spin"></i> Synchronizing Dashboard...</h3>
+        <h3><i class="fas fa-spinner fa-spin"></i> Initializing Dashboard...</h3>
     </div>
 
     <div id="mobile-overlay" class="overlay" onclick="toggleSidebar()"></div>
@@ -210,17 +213,17 @@
                     </div>
                     <div class="card" style="display:flex; align-items:center; gap:15px;">
                         <i class="fas fa-shield-alt" style="font-size:30px; color:var(--secondary)"></i>
-                        <div><small>Security</small><br><strong>Encrypted</strong></div>
+                        <div><small>Security</small><br><strong>Protected</strong></div>
                     </div>
                 </div>
 
                 <div class="card">
-                    <h3><i class="fas fa-list-ul"></i> Recent Activity Log</h3>
+                    <h3>Recent Activity Log</h3>
                     <div class="responsive-table">
                         <table>
-                            <thead><tr><th>Email</th><th>Action</th><th>Time</th></tr></thead>
+                            <thead><tr><th>User</th><th>Action</th><th>Time</th></tr></thead>
                             <tbody id="activityLog">
-                                <tr><td colspan="3" style="text-align:center;">Fetching activity...</td></tr>
+                                <tr><td colspan="3" style="text-align:center;">Fetching activities...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -232,14 +235,16 @@
                 <div class="stats-grid">
                     <div class="card">
                         <h3>Update Name</h3>
+                        <p style="font-size: 13px; color: var(--text-sub);">Changing your name will update your display across the portal.</p>
                         <input type="text" id="editName" placeholder="New Display Name">
-                        <button id="btnSaveName" onclick="saveName()" class="btn" style="background:var(--primary);">Update Name</button>
+                        <button id="btnSaveName" onclick="saveName()" class="btn-action">Update Name</button>
                     </div>
                     <div class="card">
                         <h3>Change Password</h3>
+                        <p style="font-size: 13px; color: var(--text-sub);">Verify current password to set a new one.</p>
                         <input type="password" id="oldPass" placeholder="Current Password">
                         <input type="password" id="newPass" placeholder="New Password">
-                        <button id="btnSavePass" onclick="savePassword()" class="btn" style="background:var(--danger);">Update Password</button>
+                        <button id="btnSavePass" onclick="savePassword()" class="btn-action btn-danger">Update Password</button>
                     </div>
                 </div>
             </section>
@@ -247,7 +252,7 @@
     </main>
 
     <script>
-        // Use your current deployed Web App URL
+        // Replace this with your actual Deployment URL
         const API_URL = 'https://script.google.com/macros/s/AKfycbyClyzHpvlaiM5OAUCAsE02M8ZtcuQQy3BzDS97qRL3o0OCabAe1IzurwzDyJ6TiTis/exec';
 
         function toggleSidebar() {
@@ -270,40 +275,36 @@
             const formData = new URLSearchParams();
             formData.append('function', func);
             formData.append('data', JSON.stringify(data));
-            
             try {
                 const response = await fetch(API_URL, { method: 'POST', body: formData });
                 const result = await response.json();
                 return result;
             } catch (e) {
                 console.error("API Error:", e);
-                return { success: false, message: "Connection error: Check your Internet and Web App Deployment." };
+                return { success: false, message: "Connection error" };
             }
         }
 
+        // Helper to update all name instances in UI
         function updateUIWithName(name) {
-            const safeName = name || "User";
-            document.getElementById('userNameTop').innerText = safeName;
-            document.getElementById('welcomeName').innerText = safeName;
-            document.getElementById('editName').value = safeName;
-            document.getElementById('userAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(safeName)}&background=4285f4&color=fff`;
+            document.getElementById('userNameTop').innerText = name;
+            document.getElementById('welcomeName').innerText = name;
+            document.getElementById('editName').value = name;
+            document.getElementById('userAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=4285f4&color=fff`;
         }
 
         async function init() {
             const token = localStorage.getItem('gas_session_token');
-            const cachedName = localStorage.getItem('gas_user_name');
+            const storedName = localStorage.getItem('gas_user_name') || 'User';
             
             if (!token) { window.location.href = 'login.html'; return; }
 
-            // Pre-fill with cache for speed
-            if(cachedName) updateUIWithName(cachedName);
+            // Pre-fill from local storage for speed
+            updateUIWithName(storedName);
 
             const result = await callApi('validateSession', { token: token });
             if (result.success) {
                 document.getElementById('loading-overlay').classList.add('hidden');
-                // Use email if name is missing from session
-                const displayName = cachedName || result.email.split('@')[0];
-                updateUIWithName(displayName);
                 fetchLogs();
             } else {
                 handleLogout();
@@ -312,25 +313,24 @@
 
         async function fetchLogs() {
             const res = await callApi('getRecentLogs', { token: localStorage.getItem('gas_session_token') });
-            const logBody = document.getElementById('activityLog');
-            
-            if (res.success && res.logs && res.logs.length > 0) {
+            if (res.success && res.logs) {
+                const logBody = document.getElementById('activityLog');
                 logBody.innerHTML = res.logs.map(log => `
                     <tr>
-                        <td><strong>${log[0]}</strong></td>
+                        <td>${log[0]}</td>
                         <td>${log[1]}</td>
                         <td>${new Date(log[2]).toLocaleString()}</td>
                     </tr>`).join('');
             } else {
-                logBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No recent logs found.</td></tr>';
+                document.getElementById('activityLog').innerHTML = '<tr><td colspan="3" style="text-align:center;">No activity found.</td></tr>';
             }
         }
 
         async function saveName() {
             const btn = document.getElementById('btnSaveName');
-            const newName = document.getElementById('editName').value;
+            const newName = document.getElementById('editName').value.trim();
             
-            if(!newName) return alert("Please enter a name");
+            if(!newName) return alert("Please enter a valid name");
 
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
@@ -342,12 +342,13 @@
 
             if (res && res.success) {
                 localStorage.setItem('gas_user_name', newName);
-                updateUIWithName(newName); // Instant update
-                alert("Profile Name Updated!");
-                fetchLogs();
+                updateUIWithName(newName); // Instant UI sync
+                alert("Profile name updated successfully!");
+                fetchLogs(); // Refresh activity log
             } else {
-                alert("Error: " + (res.message || "Unknown server error"));
+                alert("Update failed: " + (res.message || "Unknown error"));
             }
+            
             btn.disabled = false;
             btn.innerText = 'Update Name';
         }
@@ -357,7 +358,7 @@
             const oldPass = document.getElementById('oldPass').value;
             const newPass = document.getElementById('newPass').value;
 
-            if(!oldPass || !newPass) return alert("Fill in current and new password");
+            if(!oldPass || !newPass) return alert("Please fill in both password fields");
 
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Changing...';
@@ -374,19 +375,21 @@
                 document.getElementById('newPass').value = '';
                 fetchLogs();
             } else {
-                alert("Error: " + (res.message || "Verification failed"));
+                alert("Failed to change password: " + (res.message || "Invalid current password"));
             }
+            
             btn.disabled = false;
             btn.innerText = 'Update Password';
         }
 
         function handleLogout() {
             const token = localStorage.getItem('gas_session_token');
-            if(token) callApi('logout', { token: token });
+            callApi('logout', { token: token });
             localStorage.clear();
             window.location.href = 'login.html';
         }
 
+        // Initialize on load
         init();
     </script>
 </body>
