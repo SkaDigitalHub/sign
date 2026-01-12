@@ -153,23 +153,22 @@
         td { padding: 12px; border-bottom: 1px solid #f1f3f4; font-size: 14px; }
         
         input {
-            width: 100%; padding: 10px; margin: 10px 0;
+            width: 100%; padding: 12px; margin: 10px 0;
             border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;
         }
 
         .btn {
-            color:white; border:none; padding:10px 20px; 
+            color:white; border:none; padding:12px 20px; 
             border-radius:5px; cursor:pointer; width:100%;
-            font-weight: bold; transition: 0.2s;
+            font-weight: bold; transition: background 0.2s;
         }
-        .btn:hover { opacity: 0.8; }
-        .btn:disabled { background: #ccc !important; cursor: not-allowed; }
+        .btn:disabled { background: #ccc !important; cursor: wait; }
     </style>
 </head>
 <body>
 
     <div id="loading-overlay" style="position:fixed; inset:0; background:white; display:flex; justify-content:center; align-items:center; z-index:9999;">
-        <h3><i class="fas fa-spinner fa-spin"></i> Synchronizing...</h3>
+        <h3><i class="fas fa-spinner fa-spin"></i> Initializing Dashboard...</h3>
     </div>
 
     <div id="mobile-overlay" class="overlay" onclick="toggleSidebar()"></div>
@@ -190,8 +189,8 @@
         <header>
             <i class="fas fa-bars menu-toggle" onclick="toggleSidebar()"></i>
             <div class="user-profile-top">
-                <span id="userNameTop">User</span>
-                <img src="" id="userAvatar">
+                <span id="userNameTop">...</span>
+                <img src="" id="userAvatar" alt="Profile">
             </div>
         </header>
 
@@ -213,12 +212,18 @@
                 </div>
 
                 <div class="card">
-                    <h3><i class="fas fa-history"></i> Recent Activity Log</h3>
-                    <div class="responsive-table">
+                    <h3><i class="fas fa-list-ul" style="margin-right:10px;"></i> Recent Activity Log</h3>
+                    <div style="overflow-x: auto;">
                         <table>
-                            <thead><tr><th>User Email</th><th>Action</th><th>Timestamp</th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th>Email</th>
+                                    <th>Action</th>
+                                    <th>Timestamp</th>
+                                </tr>
+                            </thead>
                             <tbody id="activityLog">
-                                <tr><td colspan="3" style="text-align:center;">No activity records found.</td></tr>
+                                <tr><td colspan="3" style="text-align:center;">Fetching activities...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -226,18 +231,18 @@
             </section>
 
             <section id="profile-view" class="hidden">
-                <h1>Account Settings</h1>
+                <h1>Profile Settings</h1>
                 <div class="stats-grid">
                     <div class="card">
                         <h3>Update Display Name</h3>
                         <input type="text" id="editName" placeholder="New Display Name">
-                        <button id="btnUpdateName" onclick="saveName()" class="btn" style="background:var(--primary);">Update Name</button>
+                        <button id="btnSaveName" onclick="saveName()" class="btn" style="background:var(--primary);">Save New Name</button>
                     </div>
                     <div class="card">
                         <h3>Change Password</h3>
                         <input type="password" id="oldPass" placeholder="Current Password">
                         <input type="password" id="newPass" placeholder="New Password">
-                        <button id="btnUpdatePass" onclick="savePassword()" class="btn" style="background:var(--danger);">Update Password</button>
+                        <button id="btnSavePass" onclick="savePassword()" class="btn" style="background:var(--danger);">Update Password</button>
                     </div>
                 </div>
             </section>
@@ -271,14 +276,12 @@
                 const response = await fetch(API_URL, { method: 'POST', body: formData });
                 const result = await response.json();
                 return result;
-            } catch (err) {
-                console.error("API Call failed", err);
-                return { success: false, message: "Network connection error" };
+            } catch (e) {
+                return { success: false, message: "Connection Error" };
             }
         }
 
-        // Helper to update all UI elements that use the name
-        function updateUIName(name) {
+        function refreshUIElements(name) {
             document.getElementById('userNameTop').innerText = name;
             document.getElementById('welcomeName').innerText = name;
             document.getElementById('editName').value = name;
@@ -288,20 +291,15 @@
         async function init() {
             const token = localStorage.getItem('gas_session_token');
             const cachedName = localStorage.getItem('gas_user_name') || 'User';
-            
+
             if (!token) { window.location.href = 'login.html'; return; }
 
-            // Set initial cached UI
-            updateUIName(cachedName);
+            // Pre-fill UI with cached data while validating
+            refreshUIElements(cachedName);
 
             const result = await callApi('validateSession', { token: token });
             if (result.success) {
                 document.getElementById('loading-overlay').classList.add('hidden');
-                // If backend has a different name, update it
-                if (result.name) {
-                    localStorage.setItem('gas_user_name', result.name);
-                    updateUIName(result.name);
-                }
                 fetchLogs();
             } else {
                 handleLogout();
@@ -309,30 +307,32 @@
         }
 
         async function fetchLogs() {
-            const res = await callApi('getRecentLogs', { token: localStorage.getItem('gas_session_token') });
-            if (res.success && res.logs) {
-                const logBody = document.getElementById('activityLog');
-                if (res.logs.length === 0) {
-                    logBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No activity records found.</td></tr>';
-                    return;
-                }
-                logBody.innerHTML = res.logs.map(log => `
-                    <tr>
+            const token = localStorage.getItem('gas_session_token');
+            const res = await callApi('getRecentLogs', { token: token });
+            const logBody = document.getElementById('activityLog');
+            
+            if (res.success && res.logs && res.logs.length > 0) {
+                logBody.innerHTML = res.logs.map(log => {
+                    // Handle Google Apps Script date format
+                    const timestamp = new Date(log[2]).toLocaleString();
+                    return `<tr>
                         <td><strong>${log[0]}</strong></td>
                         <td>${log[1]}</td>
-                        <td>${new Date(log[2]).toLocaleString()}</td>
-                    </tr>`).join('');
+                        <td>${timestamp}</td>
+                    </tr>`;
+                }).join('');
+            } else {
+                logBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No activity found.</td></tr>';
             }
         }
 
         async function saveName() {
-            const btn = document.getElementById('btnUpdateName');
+            const btn = document.getElementById('btnSaveName');
             const newName = document.getElementById('editName').value;
-            
-            if(!newName) return alert("Please enter a new name");
+            if(!newName) return alert("Please enter a name");
 
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
 
             const res = await callApi('updateProfile', { 
                 token: localStorage.getItem('gas_session_token'), 
@@ -341,26 +341,25 @@
 
             if (res.success) {
                 localStorage.setItem('gas_user_name', newName);
-                updateUIName(newName); // Instant UI refresh
-                alert("Success: Profile name updated!");
-                fetchLogs(); // Refresh log to show the update action
+                refreshUIElements(newName);
+                alert("Profile Updated Successfully!");
+                fetchLogs(); // Refresh logs to show the name change event
             } else {
-                alert("Error: " + (res.message || "Failed to update name"));
+                alert("Error: " + (res.message || "Unknown error"));
             }
-            
             btn.disabled = false;
-            btn.innerText = 'Update Name';
+            btn.innerText = 'Save New Name';
         }
 
         async function savePassword() {
-            const btn = document.getElementById('btnUpdatePass');
+            const btn = document.getElementById('btnSavePass');
             const oldPass = document.getElementById('oldPass').value;
             const newPass = document.getElementById('newPass').value;
 
-            if(!oldPass || !newPass) return alert("Please fill in both password fields");
+            if(!oldPass || !newPass) return alert("Please fill both password fields");
 
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
 
             const res = await callApi('changePassword', { 
                 token: localStorage.getItem('gas_session_token'), 
@@ -369,24 +368,25 @@
             });
 
             if (res.success) {
-                alert("Success: Password changed successfully!");
+                alert("Password Updated!");
                 document.getElementById('oldPass').value = '';
                 document.getElementById('newPass').value = '';
                 fetchLogs();
             } else {
-                alert("Error: " + (res.message || "Incorrect current password"));
+                alert("Error: " + (res.message || "Failed to update password"));
             }
-            
             btn.disabled = false;
             btn.innerText = 'Update Password';
         }
 
         function handleLogout() {
+            const token = localStorage.getItem('gas_session_token');
+            callApi('logout', { token: token });
             localStorage.clear();
             window.location.href = 'login.html';
         }
 
-        // Initialize dashboard
+        // Initialize on page load
         init();
     </script>
 </body>
