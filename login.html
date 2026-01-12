@@ -145,8 +145,8 @@
                 messageDiv.className = 'success';
                 
                 // Store session token in LocalStorage
-                localStorage.setItem('session_token', result.token);
-                localStorage.setItem('user_name', result.name);
+                localStorage.setItem('gas_session_token', result.token);
+                localStorage.setItem('gas_user_name', result.name);
 
                 // Redirect to dashboard after 1 second
                 setTimeout(() => {
