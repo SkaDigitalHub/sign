@@ -134,7 +134,7 @@
                     <h3>Direct Message</h3>
                     <input type="email" id="targetEmail" placeholder="Recipient Email">
                     <textarea id="adminMsg" rows="5" placeholder="Your message..."></textarea>
-                    <button onclick="sendAdminMessage()"> 
+                    <button id="sendBtn" onclick="sendAdminMessage()"> 
                         <span id="sendText">Send Now</span>
                         <i id="sendLoader" class="fas fa-spinner fa-spin hidden"></i>
                     </button>
@@ -247,28 +247,40 @@
             showSection('msg');
         }
 
-        async function sendAdminMessage() {
-            const email = document.getElementById('targetEmail').value;
-            const msg = document.getElementById('adminMsg').value;
-            const btn = document.getElementById('sendBtn');
-            
-            if(!email || !msg) return openModal("Input Required", "Please fill in both email and message.", false);
+      async function sendAdminMessage() {
+    const email = document.getElementById('targetEmail').value;
+    const msg = document.getElementById('adminMsg').value;
+    
+    // Target the actual button for disabling, and the span for text
+    const btn = document.getElementById('sendBtn'); 
+    const btnText = document.getElementById('sendText');
+    const loader = document.getElementById('sendLoader');
+    
+    // Validation
+    if(!email || !msg) {
+        return openModal("Input Required", "Please fill in both email and message.", false);
+    }
 
-            btn.disabled = true;
-            document.getElementById('sendText').innerText = "Sending...";
-            document.getElementById('sendLoader').classList.remove('hidden');
-            
-            const res = await api('sendMessage', { recipientEmail: email, message: msg });
+    // UI Loading State: Disable the actual button
+    btn.disabled = true;
+    btnText.innerText = "Sending...";
+    loader.classList.remove('hidden');
+    
+    // API Call
+    const res = await api('sendMessage', { recipientEmail: email, message: msg });
 
-             btn.disabled = false;
-            document.getElementById('sendText').innerText = "Send Now";
-            document.getElementById('sendLoader').classList.add('hidden');
+    // Reset UI State
+    btn.disabled = false;
+    btnText.innerText = "Send Now";
+    loader.classList.add('hidden');
 
-            if(res.success) {
-                openModal("Success", "Message sent to " + email, true);
-                document.getElementById('adminMsg').value = '';
-            }
-        }
+    if(res.success) {
+        openModal("Success", "Message sent to " + email, true);
+        document.getElementById('adminMsg').value = '';
+    } else {
+        openModal("Error", res.message || "Message could not be sent.", false);
+    }
+}
 
         // --- UI: MODAL ---
         function openModal(title, msg, isSuccess) {
