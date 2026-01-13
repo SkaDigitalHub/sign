@@ -15,50 +15,76 @@
             --bg-body: #f1f3f4;
         }
 
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-body); margin: 0; display: flex; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-body); margin: 0; display: flex; overflow-x: hidden; }
 
         /* Sidebar & Layout */
-        nav { width: var(--sidebar-width); background: #fff; height: 100vh; border-right: 1px solid #dadce0; position: fixed; display: flex; flex-direction: column; }
+        nav { width: var(--sidebar-width); background: #fff; height: 100vh; border-right: 1px solid #dadce0; position: fixed; display: flex; flex-direction: column; z-index: 100; }
         main { margin-left: var(--sidebar-width); flex: 1; min-height: 100vh; }
-        header { background: #fff; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dadce0; sticky; top: 0; }
+        header { background: #fff; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dadce0; position: sticky; top: 0; z-index: 99; }
 
         /* Notification Badge */
         .notify-box { position: relative; cursor: pointer; font-size: 20px; color: var(--text-main); margin-right: 20px; }
         .badge { position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; display: none; }
 
-        /* Elements */
+        /* Content Elements */
         .content { padding: 30px; max-width: 1100px; margin: 0 auto; }
-        .card { background: #fff; padding: 20px; border-radius: 12px; border: 1px solid #dadce0; margin-bottom: 20px; }
-        .nav-item { padding: 15px 25px; border: none; background: none; width: 100%; text-align: left; cursor: pointer; color: #5f6368; font-size: 16px; }
-        .nav-item.active { background: #e8f0fe; color: var(--primary); border-radius: 0 50px 50px 0; }
-        .hidden { display: none; }
+        .card { background: #fff; padding: 20px; border-radius: 12px; border: 1px solid #dadce0; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .nav-item { padding: 15px 25px; border: none; background: none; width: 100%; text-align: left; cursor: pointer; color: #5f6368; font-size: 16px; transition: 0.3s; }
+        .nav-item.active { background: #e8f0fe; color: var(--primary); border-radius: 0 50px 50px 0; font-weight: bold; }
+        .hidden { display: none !important; }
 
-        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; }
-        button { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; box-sizing: border-box; }
+        button { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
         
-        /* Message UI */
-        .msg-unread { border-left: 4px solid var(--primary); background: #f8f9fa; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+        /* Message & Table UI */
+        .msg-unread { border-left: 4px solid var(--primary); background: #f8f9fa; padding: 15px; margin-bottom: 10px; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; padding: 12px; color: var(--text-main); border-bottom: 2px solid #eee; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+
+        /* --- MODAL STYLES --- */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; visibility: hidden; opacity: 0; transition: 0.3s; }
+        .modal-overlay.active { visibility: visible; opacity: 1; }
+        .modal { background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; transform: translateY(20px); transition: 0.3s; }
+        .modal-overlay.active .modal { transform: translateY(0); }
+        .modal i { font-size: 50px; margin-bottom: 15px; }
+        .modal.success i { color: var(--secondary); }
+        .modal.error i { color: var(--danger); }
     </style>
 </head>
 <body>
 
+    <div id="statusModal" class="modal-overlay">
+        <div class="modal" id="modalContent">
+            <i id="modalIcon" class="fas fa-check-circle"></i>
+            <h3 id="modalTitle">Success!</h3>
+            <p id="modalMsg">Action completed successfully.</p>
+            <button onclick="closeModal()" style="width:100%;">Close</button>
+        </div>
+    </div>
+
     <nav>
-        <div style="padding:25px; font-size:22px; font-weight:bold; color:var(--primary);">AppPortal</div>
-        <button class="nav-item active" onclick="showSection('dash')"><i class="fas fa-home"></i> Dashboard</button>
-        <button class="nav-item" onclick="showSection('msg')"><i class="fas fa-paper-plane"></i> Send Message (Admin)</button>
-        <button class="nav-item" onclick="showSection('profile')"><i class="fas fa-user"></i> Profile</button>
+        <div style="padding:25px; font-size:22px; font-weight:bold; color:var(--primary);"><i class="fas fa-cube"></i> AppPortal</div>
+        <button class="nav-item active" id="btn-dash" onclick="showSection('dash')"><i class="fas fa-home"></i> Dashboard</button>
+        <button class="nav-item" id="btn-msg" onclick="showSection('msg')"><i class="fas fa-paper-plane"></i> Send Message (Admin)</button>
+        <button class="nav-item" id="btn-profile" onclick="showSection('profile')"><i class="fas fa-user"></i> Profile Settings</button>
+        <button class="nav-item" onclick="handleLogout()" style="margin-top: auto; color: var(--danger);"><i class="fas fa-sign-out-alt"></i> Logout</button>
     </nav>
 
     <main>
         <header>
-            <div id="sectionTitle">Dashboard</div>
+            <div id="sectionTitle" style="font-weight: bold; font-size: 18px;">Dashboard</div>
             <div style="display:flex; align-items:center;">
                 <div class="notify-box" onclick="showSection('dash')">
                     <i class="fas fa-bell"></i>
                     <span id="notifBadge" class="badge">0</span>
                 </div>
-                <span id="topName" style="font-weight:500; margin-right:10px;">User</span>
-                <img id="topAvatar" src="" style="width:35px; border-radius:50%;">
+                <div style="text-align: right; margin-right: 12px;">
+                    <div id="topName" style="font-weight:600; font-size: 14px;">User</div>
+                    <div style="font-size: 11px; color: var(--secondary);">Online</div>
+                </div>
+                <img id="topAvatar" src="" style="width:38px; height:38px; border-radius:50%; border: 2px solid var(--primary);">
             </div>
         </header>
 
@@ -66,28 +92,42 @@
             <section id="dash">
                 <div id="notifArea"></div>
                 <div class="card">
-                    <h3>Recent Activity</h3>
-                    <table style="width:100%; border-collapse:collapse;">
-                        <tbody id="logTable"></tbody>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3><i class="fas fa-history"></i> Recent Activity</h3>
+                        <button onclick="fetchLogs()" style="padding: 5px 12px; font-size: 12px; background: #eee; color: #333;"><i class="fas fa-sync"></i> Refresh</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr><th>User</th><th>Action</th><th>Time</th></tr>
+                        </thead>
+                        <tbody id="logTable">
+                            <tr><td colspan="3">Loading logs...</td></tr>
+                        </tbody>
                     </table>
                 </div>
             </section>
 
             <section id="msg" class="hidden">
                 <div class="card">
-                    <h3>Send Message to User</h3>
-                    <p><small>Type the exact email of the user to notify them.</small></p>
+                    <h3>Send Broadcast/Direct Message</h3>
+                    <p><small>Recipient will receive a notification on their dashboard.</small></p>
+                    <label>Recipient Email</label>
                     <input type="email" id="targetEmail" placeholder="user@example.com">
-                    <textarea id="adminMsg" rows="4" placeholder="Type your message here..."></textarea>
-                    <button onclick="sendAdminMessage()">Send Notification</button>
+                    <label>Message Content</label>
+                    <textarea id="adminMsg" rows="5" placeholder="Write your message here..."></textarea>
+                    <button id="sendBtn" onclick="sendAdminMessage()">
+                        <span id="sendText">Send Notification</span>
+                        <i id="sendLoader" class="fas fa-spinner fa-spin hidden"></i>
+                    </button>
                 </div>
             </section>
 
             <section id="profile" class="hidden">
                 <div class="card">
-                    <h3>Update Profile</h3>
-                    <input type="text" id="newNameInput" placeholder="New Name">
-                    <button onclick="updateName()">Update Name</button>
+                    <h3>Update Profile Info</h3>
+                    <label>New Display Name</label>
+                    <input type="text" id="newNameInput" placeholder="Enter new name">
+                    <button id="updateBtn" onclick="updateName()">Update Profile</button>
                 </div>
             </section>
         </div>
@@ -96,67 +136,147 @@
     <script>
         const API_URL = 'https://script.google.com/macros/s/AKfycbzXeiU-vRWjvN6txHu5eMNwJIfWcpcl0f8QwJ0_3GWUd3FrqmQrEZ_8cXGb5Q55MkDzXg/exec'; 
 
+        // --- HELPER: API CALLER ---
         async function api(func, data) {
             const fd = new URLSearchParams();
             fd.append('function', func);
             fd.append('data', JSON.stringify({ ...data, token: localStorage.getItem('gas_session_token') }));
-            const res = await fetch(API_URL, { method: 'POST', body: fd });
-            return await res.json();
-        }
-
-        function showSection(id) {
-            ['dash', 'msg', 'profile'].forEach(s => document.getElementById(s).classList.add('hidden'));
-            document.getElementById(id).classList.remove('hidden');
-            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-        }
-
-        // --- MESSAGING LOGIC ---
-        async function sendAdminMessage() {
-            const email = document.getElementById('targetEmail').value;
-            const msg = document.getElementById('adminMsg').value;
-            if(!email || !msg) return alert("Fill all fields");
-
-            const res = await api('sendMessage', { recipientEmail: email, message: msg });
-            if(res.success) {
-                alert("Message sent!");
-                document.getElementById('adminMsg').value = '';
+            try {
+                const res = await fetch(API_URL, { method: 'POST', body: fd });
+                return await res.json();
+            } catch (e) {
+                return { success: false, message: "Network connection failed." };
             }
         }
 
+        // --- UI: SECTION TOGGLE ---
+        function showSection(id) {
+            ['dash', 'msg', 'profile'].forEach(s => document.getElementById(s).classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-' + id).classList.add('active');
+            
+            const titles = { 'dash': 'Dashboard', 'msg': 'Messaging Center', 'profile': 'User Profile' };
+            document.getElementById('sectionTitle').innerText = titles[id];
+        }
+
+        // --- UI: MODAL ---
+        function openModal(title, msg, isSuccess) {
+            const modalObj = document.getElementById('modalContent');
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMsg').innerText = msg;
+            modalObj.className = isSuccess ? 'modal success' : 'modal error';
+            document.getElementById('modalIcon').className = isSuccess ? 'fas fa-check-circle' : 'fas fa-exclamation-triangle';
+            document.getElementById('statusModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('statusModal').classList.remove('active');
+        }
+
+        // --- LOGIC: MESSAGING ---
+        async function sendAdminMessage() {
+            const email = document.getElementById('targetEmail').value;
+            const msg = document.getElementById('adminMsg').value;
+            const btn = document.getElementById('sendBtn');
+            
+            if(!email || !msg) return openModal("Input Required", "Please fill in both email and message.", false);
+
+            btn.disabled = true;
+            document.getElementById('sendText').innerText = "Sending...";
+            document.getElementById('sendLoader').classList.remove('hidden');
+
+            const res = await api('sendMessage', { recipientEmail: email, message: msg });
+            
+            btn.disabled = false;
+            document.getElementById('sendText').innerText = "Send Notification";
+            document.getElementById('sendLoader').classList.add('hidden');
+
+            if(res.success) {
+                openModal("Sent!", "Your message has been delivered to " + email, true);
+                document.getElementById('adminMsg').value = '';
+            } else {
+                openModal("Failed", res.message || "Could not send message.", false);
+            }
+        }
+
+        // --- LOGIC: NOTIFICATIONS ---
         async function checkNotifications() {
             const res = await api('getNotifications', {});
             const badge = document.getElementById('notifBadge');
             const area = document.getElementById('notifArea');
             
-            if(res.success && res.messages.length > 0) {
+            if(res.success && res.messages && res.messages.length > 0) {
                 badge.innerText = res.messages.length;
                 badge.style.display = 'block';
-                area.innerHTML = '<h3>New Notifications</h3>' + res.messages.map(m => `
+                area.innerHTML = '<h3 style="color:var(--primary);">New Messages</h3>' + res.messages.map(m => `
                     <div class="msg-unread">
-                        <strong>From Admin:</strong> ${m[2]} <br>
-                        <small>${new Date(m[3]).toLocaleString()}</small>
+                        <div style="display:flex; justify-content:space-between;">
+                            <strong>From: ${m[1]}</strong>
+                            <small>${new Date(m[3]).toLocaleTimeString()}</small>
+                        </div>
+                        <p style="margin: 8px 0 0 0;">${m[2]}</p>
                     </div>
+                `).join('');
+            } else {
+                badge.style.display = 'none';
+                area.innerHTML = '';
+            }
+        }
+
+        // --- LOGIC: ACTIVITY LOGS ---
+        async function fetchLogs() {
+            const res = await api('getRecentLogs', {});
+            const logTable = document.getElementById('logTable');
+            if(res.success && res.logs) {
+                logTable.innerHTML = res.logs.map(l => `
+                    <tr>
+                        <td>${l[0]}</td>
+                        <td>${l[1]}</td>
+                        <td>${new Date(l[2]).toLocaleString()}</td>
+                    </tr>
                 `).join('');
             }
         }
 
+        // --- LOGIC: PROFILE ---
         async function updateName() {
             const name = document.getElementById('newNameInput').value;
+            if(!name) return openModal("Empty Field", "Please enter a valid name.", false);
+            
+            const btn = document.getElementById('updateBtn');
+            btn.disabled = true;
+
             const res = await api('updateProfile', { newName: name });
             if(res.success) {
                 localStorage.setItem('gas_user_name', name);
-                location.reload();
+                openModal("Success", "Your profile name has been updated.", true);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                openModal("Update Failed", res.message, false);
+                btn.disabled = false;
             }
         }
 
-        // --- INIT ---
+        function handleLogout() {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+
+        // --- INITIALIZE ---
         window.onload = () => {
+            const token = localStorage.getItem('gas_session_token');
+            if(!token) window.location.href = 'login.html';
+
             const name = localStorage.getItem('gas_user_name') || 'User';
             document.getElementById('topName').innerText = name;
-            document.getElementById('topAvatar').src = `https://ui-avatars.com/api/?name=${name}&background=random`;
+            document.getElementById('topAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=4285f4&color=fff&bold=true`;
+            
+            fetchLogs();
             checkNotifications();
-            // Polling for new messages every 30 seconds
-            setInterval(checkNotifications, 30000);
+            // Check for new messages every 60 seconds
+            setInterval(checkNotifications, 60000);
         };
     </script>
 </body>
