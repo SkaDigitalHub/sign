@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enterprise Admin Dashboard</title>
+    <title>Super Admin Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -38,10 +38,15 @@
         
         .badge-count { background: #e8f0fe; color: var(--primary); padding: 2px 8px; border-radius: 10px; font-weight: bold; }
 
-        /* Modal */
+        /* --- MODAL STYLES --- */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; visibility: hidden; opacity: 0; transition: 0.3s; }
         .modal-overlay.active { visibility: visible; opacity: 1; }
-        .modal { background: white; padding: 30px; border-radius: 12px; width: 400px; text-align: center; }
+        .modal { background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; transform: translateY(20px); transition: 0.3s; }
+        .modal-overlay.active .modal { transform: translateY(0); }
+        .modal i { font-size: 50px; margin-bottom: 15px; }
+        .modal.success i { color: var(--secondary); }
+        .modal.error i { color: var(--danger); }
+        
         /* New Styles for History Table inside Modal */
     #historyModal .modal { width: 600px; max-width: 95%; max-height: 80vh; overflow-y: auto; text-align: left; }
     .history-row { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; }
@@ -65,9 +70,10 @@
 </div>
 
     <div id="statusModal" class="modal-overlay">
-        <div class="modal">
+        <div class="modal" id="modalContent">
+            <i id="modalIcon" class="fas fa-check-circle"></i>
             <h3 id="modalTitle">Notification</h3>
-            <p id="modalMsg"></p>
+            <p id="modalMsg">Action completed successfully!</p>
             <button onclick="closeModal()" style="width:100%">Close</button>
         </div>
     </div>
@@ -78,6 +84,7 @@
         <button class="nav-item" onclick="showSection('users')"><i class="fas fa-users"></i> Manage Users</button>
         <button class="nav-item" onclick="showSection('msg')"><i class="fas fa-paper-plane"></i> Send Message</button>
         <button class="nav-item" onclick="showSection('profile')"><i class="fas fa-cog"></i> Settings</button>
+        <button class="nav-item" onclick="handleLogout()" style="margin-top: auto; color: var(--danger);"><i class="fas fa-sign-out-alt"></i> Logout</button>
     </nav>
 
     <main>
@@ -124,7 +131,10 @@
                     <h3>Direct Message</h3>
                     <input type="email" id="targetEmail" placeholder="Recipient Email">
                     <textarea id="adminMsg" rows="5" placeholder="Your message..."></textarea>
-                    <button onclick="sendAdminMessage()">Send Now</button>
+                    <button onclick="sendAdminMessage()"> 
+                        <span id="sendText">Send Now</span>
+                        <i id="sendLoader" class="fas fa-spinner fa-spin hidden"></i>
+                    </button>
                 </div>
             </section>
 
@@ -236,20 +246,61 @@
         async function sendAdminMessage() {
             const email = document.getElementById('targetEmail').value;
             const msg = document.getElementById('adminMsg').value;
+            const btn = document.getElementById('sendBtn');
+            
+            if(!email || !msg) return openModal("Input Required", "Please fill in both email and message.", false);
+
+            btn.disabled = true;
+            document.getElementById('sendText').innerText = "Sending...";
+            document.getElementById('sendLoader').classList.remove('hidden');
+            
             const res = await api('sendMessage', { recipientEmail: email, message: msg });
+
+             btn.disabled = false;
+            document.getElementById('sendText').innerText = "Send Now";
+            document.getElementById('sendLoader').classList.add('hidden');
+
             if(res.success) {
                 openModal("Success", "Message sent to " + email);
                 document.getElementById('adminMsg').value = '';
             }
         }
 
-        function openModal(title, msg) {
+        // --- UI: MODAL ---
+        function openModal(title, msg, isSuccess) {
+            const modalObj = document.getElementById('modalContent');
             document.getElementById('modalTitle').innerText = title;
             document.getElementById('modalMsg').innerText = msg;
+            modalObj.className = isSuccess ? 'modal success' : 'modal error';
+            document.getElementById('modalIcon').className = isSuccess ? 'fas fa-check-circle' : 'fas fa-exclamation-triangle';
             document.getElementById('statusModal').classList.add('active');
         }
 
         function closeModal() { document.getElementById('statusModal').classList.remove('active'); }
+
+            // --- LOGIC: PROFILE ---
+        async function updateName() {
+            const name = document.getElementById('newNameInput').value;
+            if(!name) return openModal("Empty Field", "Please enter a valid name.", false);
+            
+            const btn = document.getElementById('updateBtn');
+            btn.disabled = true;
+
+            const res = await api('updateProfile', { newName: name });
+            if(res.success) {
+                localStorage.setItem('gas_user_name', name);
+                openModal("Success", "Your profile name has been updated.", true);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                openModal("Update Failed", res.message, false);
+                btn.disabled = false;
+            }
+        }
+
+        function handleLogout() {
+            localStorage.clear();
+            window.location.href = 'in.html';
+        }
 
      
              // --- INITIALIZE ---
