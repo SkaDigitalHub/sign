@@ -74,7 +74,10 @@
             <i id="modalIcon" class="fas fa-check-circle"></i>
             <h3 id="modalTitle">Notification</h3>
             <p id="modalMsg">Action completed successfully!</p>
-            <button onclick="closeModal()" style="width:100%">Close</button>
+            <div id="modalActions" style="display: flex; gap: 10px; margin-top: 20px;">
+                <button id="modalConfirmBtn" class="hidden" style="flex: 1; background: var(--danger); justify-content: center;">Confirm</button>
+                <button id="modalCloseBtn" onclick="closeModal()" style="flex: 1; background: #eee; color: #333; justify-content: center;">Close</button>
+            </div>
         </div>
     </div>
 
@@ -149,7 +152,7 @@
     </main>
 
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycby0HnC8gxw9-ttPCxPC87kgbzYJYpI5Em_DRdi7vHuV3Qm0cRHcqPRE41pGgPD___yjrg/exec'; // RE-ADD YOUR URL HERE
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxc7m46xTrD-F9ObUzVwPywNn8zqm_3RHWx_QWuna0IQR-6AfpyGUFrAF6P3ItwUZ49DA/exec'; // RE-ADD YOUR URL HERE
 
         async function api(func, data) {
             const fd = new URLSearchParams();
@@ -221,6 +224,7 @@
                     <button onclick="toggleBan('${u.email}', '${u.status}')" style="background:${isBanned ? 'var(--secondary)' : 'var(--danger)'}; padding:5px 8px; font-size:11px;">
                         <i class="fas fa-user-${isBanned ? 'check' : 'slash'}"></i> ${banBtnText}
                     </button>
+                    <button title="Force Logout" onclick="forceLogout('${u.email}')" style="background:var(--danger);"><i class="fas fa-running"></i> Kick</button>
                         <button onclick="openChat('${u.email}')" style="background:var(--secondary); padding:5px 10px; font-size:12px;">
                             <i class="fas fa-comment"></i> Message
                         </button>
@@ -269,6 +273,9 @@
         // --- UI: MODAL ---
         function openModal(title, msg, isSuccess) {
             const modalObj = document.getElementById('modalContent');
+                     // Clean up from confirm mode
+            document.getElementById('modalConfirmBtn').classList.add('hidden');
+            document.getElementById('modalCloseBtn').innerText = "Close";
             document.getElementById('modalTitle').innerText = title;
             document.getElementById('modalMsg').innerText = msg;
             modalObj.className = isSuccess ? 'modal success' : 'modal error';
@@ -276,7 +283,14 @@
             document.getElementById('statusModal').classList.add('active');
         }
 
-        function closeModal() { document.getElementById('statusModal').classList.remove('active'); }
+        function closeModal() { 
+            document.getElementById('statusModal').classList.remove('active'); 
+            setTimeout(() => {
+                document.getElementById('modalConfirmBtn').classList.add('hidden');
+                document.getElementById('modalConfirmBtn').disabled = false;
+                document.getElementById('modalCloseBtn').innerText = "Close";
+            }, 300);
+        }
 
             // --- LOGIC: PROFILE ---
         async function updateName() {
@@ -302,7 +316,89 @@
             window.location.href = 'in.html';
         }
 
-     
+
+
+        // Force log out
+         async function forceLogout(email) {
+    
+    document.getElementById('modalTitle').innerText = "Force Disconnect";
+    document.getElementById('modalMsg').innerText = `Are you sure you want to immediately terminate all active sessions for ${email}? The user will be redirected to the login page.`;
+    
+    // Set icon and styling for warning
+    const icon = document.getElementById('modalIcon');
+    icon.className = "fas fa-user-clock";
+    icon.style.color = "var(--danger)";
+    document.getElementById('modalContent').className = "modal error";
+
+    const confirmBtn = document.getElementById('modalConfirmBtn');
+    const closeBtn = document.getElementById('modalCloseBtn');
+    
+    // 2. Configure Buttons
+    confirmBtn.classList.remove('hidden');
+    confirmBtn.innerText = "Terminate";
+    confirmBtn.style.background = "var(--danger)";
+    closeBtn.innerText = "Cancel";
+
+    // 3. Define the Action
+    confirmBtn.onclick = async () => {
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Kicking...';
+        
+        const res = await api('forceLogout', { targetEmail: email });
+        
+        if (res.success) {
+            closeModal();
+            setTimeout(() => {
+                openModal("Disconnected", `${email} has been logged out of the system.`, true);
+                fetchAllUsers(); // Refresh UI to show updated log counts if applicable
+            }, 300);
+        } else {
+            openModal("Action Failed", res.message || "Could not terminate user session.", false);
+        }
+    };
+
+    // 4. Show Modal
+    document.getElementById('statusModal').classList.add('active');
+}
+
+        // LOGIC TO TOGGLE BAN
+        async function toggleBan(email, currentStatus) {
+            const isBanning = currentStatus !== 'Banned';
+            const title = isBanning ? "Confirm Ban" : "Confirm Reactivation";
+            const msg = isBanning 
+                ? `Are you sure you want to BAN ${email}? This user will no longer be able to log in.`
+                : `Are you sure you want to reactivate ${email}?`;
+
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMsg').innerText = msg;
+            document.getElementById('modalIcon').className = "fas fa-exclamation-triangle";
+            document.getElementById('modalIcon').style.color = "var(--warning)";
+            
+            const confirmBtn = document.getElementById('modalConfirmBtn');
+            const closeBtn = document.getElementById('modalCloseBtn');
+            
+            confirmBtn.classList.remove('hidden');
+            confirmBtn.innerText = isBanning ? "Ban" : "Reactivate";
+            confirmBtn.style.background = isBanning ? "var(--danger)" : "var(--secondary)";
+            closeBtn.innerText = "Cancel";
+
+            confirmBtn.onclick = async () => {
+                confirmBtn.disabled = true;
+                const res = await api('toggleUserStatus', { targetEmail: email, currentStatus: currentStatus });
+                if (res.success) {
+                    closeModal();
+                    setTimeout(() => {
+                        openModal("Updated", `${email} status has been changed.`, true);
+                        fetchAllUsers();
+                    }, 300);
+                } else {
+                    openModal("Error", res.message, false);
+                }
+            };
+            document.getElementById('statusModal').classList.add('active');
+        }
+
+        
              // --- INITIALIZE ---
         window.onload = () => {
             const token = localStorage.getItem('gas_session_token');
@@ -312,23 +408,6 @@
             document.getElementById('topName').innerText = name;
             document.getElementById('topAvatar').src = `https://ui-avatars.com/api/?name=${name}&background=random`;
         };
-
-        // LOGIC TO TOGGLE BAN
-async function toggleBan(email, currentStatus) {
-    const confirmMsg = currentStatus === 'Banned' ? 
-        `Are you sure you want to reactivate ${email}?` : 
-        `Are you sure you want to BAN ${email}? This will block their login.`;
-
-    if (!confirm(confirmMsg)) return;
-
-    const res = await api('toggleUserStatus', { targetEmail: email, currentStatus: currentStatus });
-    if (res.success) {
-        openModal("Status Updated", `${email} is now ${res.newStatus}`, true);
-        fetchAllUsers(); // Refresh the list
-    } else {
-        openModal("Error", res.message, false);
-    }
-}
         
     </script>
 </body>
