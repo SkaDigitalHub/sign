@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --sidebar-width: 260px;
+            --primary: #4285f4;
+            --secondary: #34a853;
+            --danger: #ea4335;
+            --text-main: #202124;
+            --bg-body: #f1f3f4;
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-body); margin: 0; display: flex; overflow-x: hidden; }
+
+        /* Sidebar & Layout */
+        nav { width: var(--sidebar-width); background: #fff; height: 100vh; border-right: 1px solid #dadce0; position: fixed; display: flex; flex-direction: column; z-index: 100; }
+        main { margin-left: var(--sidebar-width); flex: 1; min-height: 100vh; }
+        header { background: #fff; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dadce0; position: sticky; top: 0; z-index: 99; }
+
+        /* Elements */
+        .content { padding: 30px; max-width: 1100px; margin: 0 auto; }
+        .card { background: #fff; padding: 20px; border-radius: 12px; border: 1px solid #dadce0; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .nav-item { padding: 15px 25px; border: none; background: none; width: 100%; text-align: left; cursor: pointer; color: #5f6368; font-size: 15px; transition: 0.3s; }
+        .nav-item.active { background: #e8f0fe; color: var(--primary); border-radius: 0 50px 50px 0; font-weight: bold; }
+        .hidden { display: none !important; }
+
+        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; box-sizing: border-box; }
+        button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px; border-bottom: 2px solid #eee; background: #f8f9fa; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+        
+        .badge-count { background: #e8f0fe; color: var(--primary); padding: 2px 8px; border-radius: 10px; font-weight: bold; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; visibility: hidden; opacity: 0; transition: 0.3s; }
+        .modal-overlay.active { visibility: visible; opacity: 1; }
+        .modal { background: white; padding: 30px; border-radius: 12px; width: 400px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div id="statusModal" class="modal-overlay">
+        <div class="modal">
+            <h3 id="modalTitle">Notification</h3>
+            <p id="modalMsg"></p>
+            <button onclick="closeModal()" style="width:100%">Close</button>
+        </div>
+    </div>
+
+    <nav>
+        <div style="padding:25px; font-size:22px; font-weight:bold; color:var(--primary);">AppPortal Admin</div>
+        <button class="nav-item active" onclick="showSection('dash')"><i class="fas fa-chart-line"></i> Overview</button>
+        <button class="nav-item" onclick="showSection('users')"><i class="fas fa-users"></i> Manage Users</button>
+        <button class="nav-item" onclick="showSection('msg')"><i class="fas fa-paper-plane"></i> Send Message</button>
+        <button class="nav-item" onclick="showSection('profile')"><i class="fas fa-cog"></i> Settings</button>
+    </nav>
+
+    <main>
+        <header>
+            <div id="sectionTitle">Dashboard Overview</div>
+            <div style="display:flex; align-items:center;">
+                <span id="topName" style="margin-right:10px; font-weight:600;">Admin</span>
+                <img id="topAvatar" src="" style="width:35px; border-radius:50%;">
+            </div>
+        </header>
+
+        <div class="content">
+            <section id="dash">
+                <div class="card">
+                    <h3>System Health</h3>
+                    <p>Welcome back. Your system is running normally.</p>
+                </div>
+            </section>
+
+            <section id="users" class="hidden">
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <h3>Registered Users</h3>
+                        <input type="text" id="userSearch" placeholder="Search by name or email..." style="width:250px; margin:0;" onkeyup="filterUsers()">
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Activities</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userListBody">
+                            <tr><td colspan="4">Loading user data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="msg" class="hidden">
+                <div class="card">
+                    <h3>Direct Message</h3>
+                    <input type="email" id="targetEmail" placeholder="Recipient Email">
+                    <textarea id="adminMsg" rows="5" placeholder="Your message..."></textarea>
+                    <button onclick="sendAdminMessage()">Send Now</button>
+                </div>
+            </section>
+
+            <section id="profile" class="hidden">
+                <div class="card">
+                    <h3>Admin Profile</h3>
+                    <input type="text" id="newNameInput" placeholder="Update Admin Name">
+                    <button onclick="updateName()">Save Changes</button>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzCT5r4MenFL5Uc0qREutHojfmWnz6LLxT9dfXt3EUcqRewaXSDTstspWGKl967wE3tOA/exec'; // RE-ADD YOUR URL HERE
+
+        async function api(func, data) {
+            const fd = new URLSearchParams();
+            fd.append('function', func);
+            fd.append('data', JSON.stringify({ ...data, token: localStorage.getItem('gas_session_token') }));
+            const res = await fetch(API_URL, { method: 'POST', body: fd });
+            return await res.json();
+        }
+
+        function showSection(id) {
+            ['dash', 'users', 'msg', 'profile'].forEach(s => document.getElementById(s).classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+            if(id === 'users') fetchAllUsers();
+        }
+
+        async function fetchAllUsers() {
+            const res = await api('getAllUsers', {});
+            const body = document.getElementById('userListBody');
+            if(res.success) {
+                window.allUsers = res.users; // Cache for search
+                renderUserTable(res.users);
+            }
+        }
+
+        function renderUserTable(users) {
+            const body = document.getElementById('userListBody');
+            body.innerHTML = users.map(u => `
+                <tr>
+                    <td><strong>${u.name}</strong></td>
+                    <td>${u.email}</td>
+                    <td><span class="badge-count">${u.activityCount}</span></td>
+                    <td>
+                        <button onclick="openChat('${u.email}')" style="background:var(--secondary); padding:5px 10px; font-size:12px;">
+                            <i class="fas fa-comment"></i> Message
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterUsers() {
+            const term = document.getElementById('userSearch').value.toLowerCase();
+            const filtered = window.allUsers.filter(u => 
+                u.name.toLowerCase().includes(term) || u.email.toLowerCase().includes(term)
+            );
+            renderUserTable(filtered);
+        }
+
+        function openChat(email) {
+            document.getElementById('targetEmail').value = email;
+            showSection('msg');
+        }
+
+        async function sendAdminMessage() {
+            const email = document.getElementById('targetEmail').value;
+            const msg = document.getElementById('adminMsg').value;
+            const res = await api('sendMessage', { recipientEmail: email, message: msg });
+            if(res.success) {
+                openModal("Success", "Message sent to " + email);
+                document.getElementById('adminMsg').value = '';
+            }
+        }
+
+        function openModal(title, msg) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMsg').innerText = msg;
+            document.getElementById('statusModal').classList.add('active');
+        }
+
+        function closeModal() { document.getElementById('statusModal').classList.remove('active'); }
+
+        window.onload = () => {
+            const name = localStorage.getItem('gas_user_name') || 'Admin';
+            document.getElementById('topName').innerText = name;
+            document.getElementById('topAvatar').src = `https://ui-avatars.com/api/?name=${name}&background=random`;
+        };
+    </script>
+</body>
+</html>
