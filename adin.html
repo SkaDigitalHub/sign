@@ -142,7 +142,7 @@
                 <div class="card">
                     <h3>Admin Profile</h3>
                     <input type="text" id="newNameInput" placeholder="Update Admin Name">
-                    <button onclick="updateName()">Save Changes</button>
+                    <button id="updateBtn" onclick="updateName()">Save Changes</button>
                 </div>
             </section>
         </div>
@@ -261,7 +261,7 @@
             document.getElementById('sendLoader').classList.add('hidden');
 
             if(res.success) {
-                openModal("Success", "Message sent to " + email);
+                openModal("Success", "Message sent to " + email, true);
                 document.getElementById('adminMsg').value = '';
             }
         }
