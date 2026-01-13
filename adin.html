@@ -211,7 +211,7 @@
 
         return `
                 <tr>
-                    <td><strong>${u.name}</strong></td>
+                    <td><strong>${u.name}</strong> ${isBanned ? '<span style="color:var(--danger)">[Banned]</span>' : ''}</td>
                     <td>${u.email}</td>
                     <td><span class="badge-count">${u.activityCount}</span></td>
                     <td>
