@@ -139,7 +139,7 @@
     </main>
 
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbzCT5r4MenFL5Uc0qREutHojfmWnz6LLxT9dfXt3EUcqRewaXSDTstspWGKl967wE3tOA/exec'; // RE-ADD YOUR URL HERE
+        const API_URL = 'https://script.google.com/macros/s/AKfycby0HnC8gxw9-ttPCxPC87kgbzYJYpI5Em_DRdi7vHuV3Qm0cRHcqPRE41pGgPD___yjrg/exec'; // RE-ADD YOUR URL HERE
 
         async function api(func, data) {
             const fd = new URLSearchParams();
@@ -191,7 +191,15 @@
 
         function renderUserTable(users) {
             const body = document.getElementById('userListBody');
-            body.innerHTML = users.map(u => `
+            body.innerHTML = users.map(u => {
+        const isBanned = u.status === 'Banned';
+        const banBtnClass = isBanned ? 'btn-active' : 'btn-ban';
+        const banBtnText = isBanned ? 'Unban' : 'Ban';
+        const statusBadge = isBanned ? 
+            `<span style="color:var(--danger); font-weight:bold;">[BANNED]</span>` : 
+            `<span style="color:var(--secondary);">[Active]</span>`;
+
+        return `
                 <tr>
                     <td><strong>${u.name}</strong></td>
                     <td>${u.email}</td>
@@ -205,7 +213,8 @@
                         </button>
                     </td>
                 </tr>
-            `).join('');
+            `;
+            }).join('');
         }
 
         function filterUsers() {
@@ -244,6 +253,23 @@
             document.getElementById('topName').innerText = name;
             document.getElementById('topAvatar').src = `https://ui-avatars.com/api/?name=${name}&background=random`;
         };
+
+        // LOGIC TO TOGGLE BAN
+async function toggleBan(email, currentStatus) {
+    const confirmMsg = currentStatus === 'Banned' ? 
+        `Are you sure you want to reactivate ${email}?` : 
+        `Are you sure you want to BAN ${email}? This will block their login.`;
+
+    if (!confirm(confirmMsg)) return;
+
+    const res = await api('toggleUserStatus', { targetEmail: email, currentStatus: currentStatus });
+    if (res.success) {
+        openModal("Status Updated", `${email} is now ${res.newStatus}`, true);
+        fetchAllUsers(); // Refresh the list
+    } else {
+        openModal("Error", res.message, false);
+    }
+}
     </script>
 </body>
 </html>
