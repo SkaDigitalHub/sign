@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --sidebar-width: 260px;
+            --primary: #4285f4;
+            --secondary: #34a853;
+            --danger: #ea4335;
+            --text-main: #202124;
+            --bg-body: #f1f3f4;
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-body); margin: 0; display: flex; overflow-x: hidden; }
+
+        /* Sidebar & Layout */
+        nav { width: var(--sidebar-width); background: #fff; height: 100vh; border-right: 1px solid #dadce0; position: fixed; display: flex; flex-direction: column; z-index: 100; }
+        main { margin-left: var(--sidebar-width); flex: 1; min-height: 100vh; }
+        header { background: #fff; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dadce0; position: sticky; top: 0; z-index: 99; }
+
+        /* Elements */
+        .content { padding: 30px; max-width: 1100px; margin: 0 auto; }
+        .card { background: #fff; padding: 20px; border-radius: 12px; border: 1px solid #dadce0; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .nav-item { padding: 15px 25px; border: none; background: none; width: 100%; text-align: left; cursor: pointer; color: #5f6368; font-size: 15px; transition: 0.3s; }
+        .nav-item.active { background: #e8f0fe; color: var(--primary); border-radius: 0 50px 50px 0; font-weight: bold; }
+        .hidden { display: none !important; }
+
+        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; box-sizing: border-box; }
+        button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px; border-bottom: 2px solid #eee; background: #f8f9fa; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+        
+        .badge-count { background: #e8f0fe; color: var(--primary); padding: 2px 8px; border-radius: 10px; font-weight: bold; }
+
+        /* --- MODAL STYLES --- */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; visibility: hidden; opacity: 0; transition: 0.3s; }
+        .modal-overlay.active { visibility: visible; opacity: 1; }
+        .modal { background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; transform: translateY(20px); transition: 0.3s; }
+        .modal-overlay.active .modal { transform: translateY(0); }
+        .modal i { font-size: 50px; margin-bottom: 15px; }
+        .modal.success i { color: var(--secondary); }
+        .modal.error i { color: var(--danger); }
+        
+        /* New Styles for History Table inside Modal */
+    #historyModal .modal { width: 600px; max-width: 95%; max-height: 80vh; overflow-y: auto; text-align: left; }
+    .history-row { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; }
+    .history-row:last-child { border-bottom: none; }
+    .action-text { font-weight: 500; color: var(--text-main); }
+    .time-text { color: var(--text-sub); font-size: 12px; }
+    </style>
+</head>
+<body>
+
+    <div id="historyModal" class="modal-overlay" onclick="closeHistoryModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 id="historyTitle" style="margin:0;">User History</h3>
+            <button onclick="closeHistoryModal()" style="background:#eee; color:#333; padding:5px 10px;">&times;</button>
+        </div>
+        <div id="historyContent">
+            <p>Loading activities...</p>
+        </div>
+    </div>
+</div>
+
+    <div id="statusModal" class="modal-overlay">
+        <div class="modal" id="modalContent">
+            <i id="modalIcon" class="fas fa-check-circle"></i>
+            <h3 id="modalTitle">Notification</h3>
+            <p id="modalMsg">Action completed successfully!</p>
+            <button onclick="closeModal()" style="width:100%">Close</button>
+        </div>
+    </div>
+
+    <nav>
+        <div style="padding:25px; font-size:22px; font-weight:bold; color:var(--primary);">AppPortal Admin</div>
+        <button class="nav-item active" onclick="showSection('dash')"><i class="fas fa-chart-line"></i> Overview</button>
+        <button class="nav-item" onclick="showSection('users')"><i class="fas fa-users"></i> Manage Users</button>
+        <button class="nav-item" onclick="showSection('msg')"><i class="fas fa-paper-plane"></i> Send Message</button>
+        <button class="nav-item" onclick="showSection('profile')"><i class="fas fa-cog"></i> Settings</button>
+        <button class="nav-item" onclick="handleLogout()" style="margin-top: auto; color: var(--danger);"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </nav>
+
+    <main>
+        <header>
+            <div id="sectionTitle">Dashboard Overview</div>
+            <div style="display:flex; align-items:center;">
+                <span id="topName" style="margin-right:10px; font-weight:600;">Admin</span>
+                <img id="topAvatar" src="" style="width:35px; border-radius:50%;">
+            </div>
+        </header>
+
+        <div class="content">
+            <section id="dash">
+                <div class="card">
+                    <h3>System Health</h3>
+                    <p>Welcome back. Your system is running normally.</p>
+                </div>
+            </section>
+
+            <section id="users" class="hidden">
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <h3>Registered Users</h3>
+                        <input type="text" id="userSearch" placeholder="Search by name or email..." style="width:250px; margin:0;" onkeyup="filterUsers()">
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Activities</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userListBody">
+                            <tr><td colspan="4">Loading user data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="msg" class="hidden">
+                <div class="card">
+                    <h3>Direct Message</h3>
+                    <input type="email" id="targetEmail" placeholder="Recipient Email">
+                    <textarea id="adminMsg" rows="5" placeholder="Your message..."></textarea>
+                    <button onclick="sendAdminMessage()"> 
+                        <span id="sendText">Send Now</span>
+                        <i id="sendLoader" class="fas fa-spinner fa-spin hidden"></i>
+                    </button>
+                </div>
+            </section>
+
+            <section id="profile" class="hidden">
+                <div class="card">
+                    <h3>Admin Profile</h3>
+                    <input type="text" id="newNameInput" placeholder="Update Admin Name">
+                    <button onclick="updateName()">Save Changes</button>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycby0HnC8gxw9-ttPCxPC87kgbzYJYpI5Em_DRdi7vHuV3Qm0cRHcqPRE41pGgPD___yjrg/exec'; // RE-ADD YOUR URL HERE
+
+        async function api(func, data) {
+            const fd = new URLSearchParams();
+            fd.append('function', func);
+            fd.append('data', JSON.stringify({ ...data, token: localStorage.getItem('gas_session_token') }));
+            const res = await fetch(API_URL, { method: 'POST', body: fd });
+            return await res.json();
+        }
+
+        function showSection(id) {
+            ['dash', 'users', 'msg', 'profile'].forEach(s => document.getElementById(s).classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+            if(id === 'users') fetchAllUsers();
+        }
+
+        async function fetchAllUsers() {
+            const res = await api('getAllUsers', {});
+            const body = document.getElementById('userListBody');
+            if(res.success) {
+                window.allUsers = res.users; // Cache for search
+                renderUserTable(res.users);
+            }
+        }
+
+        async function viewHistory(email) {
+        document.getElementById('historyTitle').innerText = "History for " + email;
+        document.getElementById('historyContent').innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Fetching logs...</p>';
+        document.getElementById('historyModal').classList.add('active');
+
+        const res = await api('getUserHistory', { targetEmail: email });
+        
+        const content = document.getElementById('historyContent');
+        if (res.success && res.logs.length > 0) {
+            content.innerHTML = res.logs.map(log => `
+                <div class="history-row">
+                    <span class="action-text">${log.action}</span>
+                    <span class="time-text">${new Date(log.timestamp).toLocaleString()}</span>
+                </div>
+            `).join('');
+        } else {
+            content.innerHTML = '<p style="text-align:center; padding:20px;">No activity recorded for this user.</p>';
+        }
+    }
+
+    function closeHistoryModal(e) {
+        document.getElementById('historyModal').classList.remove('active');
+    }
+
+        function renderUserTable(users) {
+            const body = document.getElementById('userListBody');
+            body.innerHTML = users.map(u => {
+        const isBanned = u.status === 'Banned';
+        const banBtnClass = isBanned ? 'btn-active' : 'btn-ban';
+        const banBtnText = isBanned ? 'Unban' : 'Ban';
+        const statusBadge = isBanned ? 
+            `<span style="color:var(--danger); font-weight:bold;">[BANNED]</span>` : 
+            `<span style="color:var(--secondary);">[Active]</span>`;
+
+        return `
+                <tr>
+                    <td><strong>${u.name}</strong></td>
+                    <td>${u.email}</td>
+                    <td><span class="badge-count">${u.activityCount}</span></td>
+                    <td>
+                    <button onclick="viewHistory('${u.email}')" style="background:#6c757d; padding:5px 10px; font-size:12px; margin-right:5px;">
+                        <i class="fas fa-eye"></i> History
+                    </button>
+                    <button onclick="toggleBan('${u.email}', '${u.status}')" style="background:${isBanned ? 'var(--secondary)' : 'var(--danger)'}; padding:5px 8px; font-size:11px;">
+                        <i class="fas fa-user-${isBanned ? 'check' : 'slash'}"></i> ${banBtnText}
+                    </button>
+                        <button onclick="openChat('${u.email}')" style="background:var(--secondary); padding:5px 10px; font-size:12px;">
+                            <i class="fas fa-comment"></i> Message
+                        </button>
+                    </td>
+                </tr>
+            `;
+            }).join('');
+        }
+
+        function filterUsers() {
+            const term = document.getElementById('userSearch').value.toLowerCase();
+            const filtered = window.allUsers.filter(u => 
+                u.name.toLowerCase().includes(term) || u.email.toLowerCase().includes(term)
+            );
+            renderUserTable(filtered);
+        }
+
+        function openChat(email) {
+            document.getElementById('targetEmail').value = email;
+            showSection('msg');
+        }
+
+        async function sendAdminMessage() {
+            const email = document.getElementById('targetEmail').value;
+            const msg = document.getElementById('adminMsg').value;
+            const btn = document.getElementById('sendBtn');
+            
+            if(!email || !msg) return openModal("Input Required", "Please fill in both email and message.", false);
+
+            btn.disabled = true;
+            document.getElementById('sendText').innerText = "Sending...";
+            document.getElementById('sendLoader').classList.remove('hidden');
+            
+            const res = await api('sendMessage', { recipientEmail: email, message: msg });
+
+             btn.disabled = false;
+            document.getElementById('sendText').innerText = "Send Now";
+            document.getElementById('sendLoader').classList.add('hidden');
+
+            if(res.success) {
+                openModal("Success", "Message sent to " + email);
+                document.getElementById('adminMsg').value = '';
+            }
+        }
+
+        // --- UI: MODAL ---
+        function openModal(title, msg, isSuccess) {
+            const modalObj = document.getElementById('modalContent');
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMsg').innerText = msg;
+            modalObj.className = isSuccess ? 'modal success' : 'modal error';
+            document.getElementById('modalIcon').className = isSuccess ? 'fas fa-check-circle' : 'fas fa-exclamation-triangle';
+            document.getElementById('statusModal').classList.add('active');
+        }
+
+        function closeModal() { document.getElementById('statusModal').classList.remove('active'); }
+
+            // --- LOGIC: PROFILE ---
+        async function updateName() {
+            const name = document.getElementById('newNameInput').value;
+            if(!name) return openModal("Empty Field", "Please enter a valid name.", false);
+            
+            const btn = document.getElementById('updateBtn');
+            btn.disabled = true;
+
+            const res = await api('updateProfile', { newName: name });
+            if(res.success) {
+                localStorage.setItem('gas_user_name', name);
+                openModal("Success", "Your profile name has been updated.", true);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                openModal("Update Failed", res.message, false);
+                btn.disabled = false;
+            }
+        }
+
+        function handleLogout() {
+            localStorage.clear();
+            window.location.href = 'in.html';
+        }
+
+     
+             // --- INITIALIZE ---
+        window.onload = () => {
+            const token = localStorage.getItem('gas_session_token');
+            if(!token) window.location.href = 'in.html';
+            
+            const name = localStorage.getItem('gas_user_name') || 'Admin';
+            document.getElementById('topName').innerText = name;
+            document.getElementById('topAvatar').src = `https://ui-avatars.com/api/?name=${name}&background=random`;
+        };
+
+        // LOGIC TO TOGGLE BAN
+async function toggleBan(email, currentStatus) {
+    const confirmMsg = currentStatus === 'Banned' ? 
+        `Are you sure you want to reactivate ${email}?` : 
+        `Are you sure you want to BAN ${email}? This will block their login.`;
+
+    if (!confirm(confirmMsg)) return;
+
+    const res = await api('toggleUserStatus', { targetEmail: email, currentStatus: currentStatus });
+    if (res.success) {
+        openModal("Status Updated", `${email} is now ${res.newStatus}`, true);
+        fetchAllUsers(); // Refresh the list
+    } else {
+        openModal("Error", res.message, false);
+    }
+}
+        
+    </script>
+</body>
+</html>
