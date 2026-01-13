@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --sidebar-width: 260px;
+            --primary: #4285f4;
+            --secondary: #34a853;
+            --danger: #ea4335;
+            --text-main: #202124;
+            --bg-body: #f1f3f4;
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-body); margin: 0; display: flex; }
+
+        /* Sidebar & Layout */
+        nav { width: var(--sidebar-width); background: #fff; height: 100vh; border-right: 1px solid #dadce0; position: fixed; display: flex; flex-direction: column; }
+        main { margin-left: var(--sidebar-width); flex: 1; min-height: 100vh; }
+        header { background: #fff; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dadce0; sticky; top: 0; }
+
+        /* Notification Badge */
+        .notify-box { position: relative; cursor: pointer; font-size: 20px; color: var(--text-main); margin-right: 20px; }
+        .badge { position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; display: none; }
+
+        /* Elements */
+        .content { padding: 30px; max-width: 1100px; margin: 0 auto; }
+        .card { background: #fff; padding: 20px; border-radius: 12px; border: 1px solid #dadce0; margin-bottom: 20px; }
+        .nav-item { padding: 15px 25px; border: none; background: none; width: 100%; text-align: left; cursor: pointer; color: #5f6368; font-size: 16px; }
+        .nav-item.active { background: #e8f0fe; color: var(--primary); border-radius: 0 50px 50px 0; }
+        .hidden { display: none; }
+
+        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; }
+        button { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        
+        /* Message UI */
+        .msg-unread { border-left: 4px solid var(--primary); background: #f8f9fa; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div style="padding:25px; font-size:22px; font-weight:bold; color:var(--primary);">AppPortal</div>
+        <button class="nav-item active" onclick="showSection('dash')"><i class="fas fa-home"></i> Dashboard</button>
+        <button class="nav-item" onclick="showSection('msg')"><i class="fas fa-paper-plane"></i> Send Message (Admin)</button>
+        <button class="nav-item" onclick="showSection('profile')"><i class="fas fa-user"></i> Profile</button>
+    </nav>
+
+    <main>
+        <header>
+            <div id="sectionTitle">Dashboard</div>
+            <div style="display:flex; align-items:center;">
+                <div class="notify-box" onclick="showSection('dash')">
+                    <i class="fas fa-bell"></i>
+                    <span id="notifBadge" class="badge">0</span>
+                </div>
+                <span id="topName" style="font-weight:500; margin-right:10px;">User</span>
+                <img id="topAvatar" src="" style="width:35px; border-radius:50%;">
+            </div>
+        </header>
+
+        <div class="content">
+            <section id="dash">
+                <div id="notifArea"></div>
+                <div class="card">
+                    <h3>Recent Activity</h3>
+                    <table style="width:100%; border-collapse:collapse;">
+                        <tbody id="logTable"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="msg" class="hidden">
+                <div class="card">
+                    <h3>Send Message to User</h3>
+                    <p><small>Type the exact email of the user to notify them.</small></p>
+                    <input type="email" id="targetEmail" placeholder="user@example.com">
+                    <textarea id="adminMsg" rows="4" placeholder="Type your message here..."></textarea>
+                    <button onclick="sendAdminMessage()">Send Notification</button>
+                </div>
+            </section>
+
+            <section id="profile" class="hidden">
+                <div class="card">
+                    <h3>Update Profile</h3>
+                    <input type="text" id="newNameInput" placeholder="New Name">
+                    <button onclick="updateName()">Update Name</button>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzXeiU-vRWjvN6txHu5eMNwJIfWcpcl0f8QwJ0_3GWUd3FrqmQrEZ_8cXGb5Q55MkDzXg/exec';
+
+        async function api(func, data) {
+            const fd = new URLSearchParams();
+            fd.append('function', func);
+            fd.append('data', JSON.stringify({ ...data, token: localStorage.getItem('gas_session_token') }));
+            const res = await fetch(API_URL, { method: 'POST', body: fd });
+            return await res.json();
+        }
+
+        function showSection(id) {
+            ['dash', 'msg', 'profile'].forEach(s => document.getElementById(s).classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+        }
+
+        // --- MESSAGING LOGIC ---
+        async function sendAdminMessage() {
+            const email = document.getElementById('targetEmail').value;
+            const msg = document.getElementById('adminMsg').value;
+            if(!email || !msg) return alert("Fill all fields");
+
+            const res = await api('sendMessage', { recipientEmail: email, message: msg });
+            if(res.success) {
+                alert("Message sent!");
+                document.getElementById('adminMsg').value = '';
+            }
+        }
+
+        async function checkNotifications() {
+            const res = await api('getNotifications', {});
+            const badge = document.getElementById('notifBadge');
+            const area = document.getElementById('notifArea');
+            
+            if(res.success && res.messages.length > 0) {
+                badge.innerText = res.messages.length;
+                badge.style.display = 'block';
+                area.innerHTML = '<h3>New Notifications</h3>' + res.messages.map(m => `
+                    <div class="msg-unread">
+                        <strong>From Admin:</strong> ${m[2]} <br>
+                        <small>${new Date(m[3]).toLocaleString()}</small>
+                    </div>
+                `).join('');
+            }
+        }
+
+        async function updateName() {
+            const name = document.getElementById('newNameInput').value;
+            const res = await api('updateProfile', { newName: name });
+            if(res.success) {
+                localStorage.setItem('gas_user_name', name);
+                location.reload();
+            }
+        }
+
+        // --- INIT ---
+        window.onload = () => {
+            const name = localStorage.getItem('gas_user_name') || 'User';
+            document.getElementById('topName').innerText = name;
+            document.getElementById('topAvatar').src = `https://ui-avatars.com/api/?name=${name}&background=random`;
+            checkNotifications();
+            // Polling for new messages every 30 seconds
+            setInterval(checkNotifications, 30000);
+        };
+    </script>
+</body>
+</html>
