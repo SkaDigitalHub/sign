@@ -251,7 +251,12 @@
 
         function closeModal() { document.getElementById('statusModal').classList.remove('active'); }
 
+     
+             // --- INITIALIZE ---
         window.onload = () => {
+            const token = localStorage.getItem('gas_session_token');
+            if(!token) window.location.href = 'in.html';
+            
             const name = localStorage.getItem('gas_user_name') || 'Admin';
             document.getElementById('topName').innerText = name;
             document.getElementById('topAvatar').src = `https://ui-avatars.com/api/?name=${name}&background=random`;
