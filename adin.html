@@ -37,6 +37,9 @@
         td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
         
         .badge-count { background: #e8f0fe; color: var(--primary); padding: 2px 8px; border-radius: 10px; font-weight: bold; }
+        .status-tag { font-size: 11px; font-weight: bold; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; margin-left: 5px; }
+        .status-active { background: #e6f4ea; color: #1e8e3e; }
+        .status-banned { background: #fce8e6; color: #d93025; }
 
         /* --- MODAL STYLES --- */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; visibility: hidden; opacity: 0; transition: 0.3s; }
@@ -214,7 +217,8 @@
 
         return `
                 <tr>
-                    <td><strong>${u.name}</strong> ${isBanned ? '<span style="color:var(--danger)">[Banned]</span>' : ''}</td>
+                    <td><strong>${u.name}</strong>
+                    <span class="status-tag ${isBanned ? 'status-banned' : 'status-active'}">${u.status || 'Active'}</span></td>
                     <td>${u.email}</td>
                     <td><span class="badge-count">${u.activityCount}</span></td>
                     <td>
